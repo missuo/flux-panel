@@ -1,0 +1,109 @@
+package service
+
+import (
+	"errors"
+	"flux-panel/dto"
+	"flux-panel/models"
+	"flux-panel/repository"
+	"fmt"
+
+	"gorm.io/gorm"
+)
+
+type NodeService struct {
+	repo *repository.NodeRepository
+}
+
+func NewNodeService(db *gorm.DB) *NodeService {
+	return &NodeService{
+		repo: repository.NewNodeRepository(db),
+	}
+}
+
+// CreateNode 创建节点
+func (s *NodeService) CreateNode(nodeDto *dto.NodeDto) error {
+	node := &models.Node{
+		Name:     nodeDto.Name,
+		Secret:   nodeDto.Secret,
+		IP:       nodeDto.IP,
+		ServerIP: nodeDto.ServerIP,
+		Version:  nodeDto.Version,
+		PortSta:  nodeDto.PortSta,
+		PortEnd:  nodeDto.PortEnd,
+		HTTP:     nodeDto.HTTP,
+		TLS:      nodeDto.TLS,
+		Socks:    nodeDto.Socks,
+	}
+
+	return s.repo.Create(node)
+}
+
+// GetAllNodes 获取所有节点
+func (s *NodeService) GetAllNodes() ([]models.Node, error) {
+	return s.repo.FindAll()
+}
+
+// UpdateNode 更新节点
+func (s *NodeService) UpdateNode(updateDto *dto.NodeUpdateDto) error {
+	node, err := s.repo.FindByID(updateDto.ID)
+	if err != nil {
+		return errors.New("节点不存在")
+	}
+
+	// 更新字段
+	if updateDto.Name != nil {
+		node.Name = *updateDto.Name
+	}
+	if updateDto.Secret != nil {
+		node.Secret = *updateDto.Secret
+	}
+	if updateDto.IP != nil {
+		node.IP = *updateDto.IP
+	}
+	if updateDto.ServerIP != nil {
+		node.ServerIP = *updateDto.ServerIP
+	}
+	if updateDto.Version != nil {
+		node.Version = *updateDto.Version
+	}
+	if updateDto.PortSta != nil {
+		node.PortSta = *updateDto.PortSta
+	}
+	if updateDto.PortEnd != nil {
+		node.PortEnd = *updateDto.PortEnd
+	}
+	if updateDto.HTTP != nil {
+		node.HTTP = *updateDto.HTTP
+	}
+	if updateDto.TLS != nil {
+		node.TLS = *updateDto.TLS
+	}
+	if updateDto.Socks != nil {
+		node.Socks = *updateDto.Socks
+	}
+
+	return s.repo.Update(node)
+}
+
+// DeleteNode 删除节点
+func (s *NodeService) DeleteNode(id uint) error {
+	return s.repo.Delete(id)
+}
+
+// GetInstallCommand 获取安装命令
+func (s *NodeService) GetInstallCommand(id uint) (string, error) {
+	node, err := s.repo.FindByID(id)
+	if err != nil {
+		return "", errors.New("节点不存在")
+	}
+
+	// 生成安装命令
+	command := fmt.Sprintf(
+		"curl -fsSL https://raw.githubusercontent.com/your-repo/flux-panel/main/install.sh | bash -s -- --id=%d --secret=%s --server=%s",
+		node.ID,
+		node.Secret,
+		node.ServerIP,
+	)
+
+	return command, nil
+}

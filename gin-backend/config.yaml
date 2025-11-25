@@ -1,0 +1,27 @@
+server:
+  port: "6365"
+  mode: "debug"  # debug or release
+  max_connections: 2000
+  shutdown_timeout: 30
+
+database:
+  host: "localhost"
+  port: 3306
+  user: "root"
+  password: ""
+  dbname: "flux_panel"
+  max_open_conns: 20
+  max_idle_conns: 5
+  conn_max_lifetime: 500
+
+jwt:
+  secret: "your-secret-key-change-in-production"
+  expire_time: 2160  # 90 days in hours
+
+captcha:
+  enabled: true
+  expire: 120  # seconds
+
+log:
+  dir: "./logs"
+  level: "info"

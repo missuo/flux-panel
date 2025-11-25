@@ -1,0 +1,49 @@
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: flux-panel-mysql
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: password
+      MYSQL_DATABASE: flux_panel
+      MYSQL_CHARACTER_SET_SERVER: utf8mb4
+      MYSQL_COLLATION_SERVER: utf8mb4_unicode_ci
+    volumes:
+      - mysql_data:/var/lib/mysql
+    ports:
+      - "3306:3306"
+    networks:
+      - flux-panel-network
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      timeout: 20s
+      retries: 10
+
+  backend:
+    build: .
+    container_name: flux-panel-backend
+    restart: always
+    ports:
+      - "6365:6365"
+    environment:
+      DB_HOST: mysql
+      DB_USER: root
+      DB_PASSWORD: password
+      DB_NAME: flux_panel
+      JWT_SECRET: change-this-secret-in-production
+      LOG_DIR: /var/log/flux-panel
+    volumes:
+      - ./logs:/var/log/flux-panel
+    depends_on:
+      mysql:
+        condition: service_healthy
+    networks:
+      - flux-panel-network
+
+volumes:
+  mysql_data:
+    driver: local
+
+networks:
+  flux-panel-network:
+    driver: bridge
