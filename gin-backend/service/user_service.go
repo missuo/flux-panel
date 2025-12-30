@@ -105,8 +105,8 @@ func (s *UserService) UpdateUser(updateDto *dto.UserUpdateDto) error {
 
 	// 检查用户名是否被占用
 	if updateDto.User != user.User {
-		existingUser, _ := s.repo.FindByUsername(updateDto.User)
-		if existingUser != nil && existingUser.ID != user.ID {
+		existingUser, err := s.repo.FindByUsername(updateDto.User)
+		if err == nil && existingUser.ID != user.ID {
 			return errors.New("用户名已被其他用户使用")
 		}
 	}
@@ -183,8 +183,8 @@ func (s *UserService) UpdatePassword(userID uint, changeDto *dto.ChangePasswordD
 
 	// 检查新用户名是否被占用（如果用户名有变化）
 	if changeDto.NewUsername != user.User {
-		existingUser, _ := s.repo.FindByUsername(changeDto.NewUsername)
-		if existingUser != nil && existingUser.ID != user.ID {
+		existingUser, err := s.repo.FindByUsername(changeDto.NewUsername)
+		if err == nil && existingUser.ID != user.ID {
 			return errors.New("用户名已被其他用户使用")
 		}
 		user.User = changeDto.NewUsername
