@@ -10,30 +10,32 @@ type LoginDto struct {
 // UserDto 创建用户请求
 type UserDto struct {
 	User          string `json:"user" binding:"required"`
-	Password      string `json:"password" binding:"required"`
-	RoleID        int    `json:"role_id"`
-	ExpTime       int64  `json:"exp_time"`
-	Flow          int64  `json:"flow"`
-	Num           int    `json:"num"`
-	FlowResetTime int64  `json:"flow_reset_time"`
+	Pwd           string `json:"pwd" binding:"required"`
+	Flow          int64  `json:"flow" binding:"required"`
+	Num           int    `json:"num" binding:"required"`
+	ExpTime       int64  `json:"expTime" binding:"required"`
+	FlowResetTime int64  `json:"flowResetTime" binding:"required"`
+	Status        *int   `json:"status"`
 }
 
 // UserUpdateDto 更新用户请求
 type UserUpdateDto struct {
 	ID            uint   `json:"id" binding:"required"`
-	User          string `json:"user"`
-	Password      string `json:"password"`
-	RoleID        *int   `json:"role_id"`
-	ExpTime       *int64 `json:"exp_time"`
-	Flow          *int64 `json:"flow"`
-	Num           *int   `json:"num"`
-	FlowResetTime *int64 `json:"flow_reset_time"`
+	User          string `json:"user" binding:"required"`
+	Pwd           string `json:"pwd"`
+	Flow          int64  `json:"flow" binding:"required"`
+	Num           int    `json:"num" binding:"required"`
+	ExpTime       int64  `json:"expTime" binding:"required"`
+	FlowResetTime int64  `json:"flowResetTime" binding:"required"`
+	Status        *int   `json:"status"`
 }
 
 // ChangePasswordDto 修改密码请求
 type ChangePasswordDto struct {
-	OldPassword string `json:"old_password" binding:"required"`
-	NewPassword string `json:"new_password" binding:"required"`
+	NewUsername     string `json:"newUsername" binding:"required"`
+	CurrentPassword string `json:"currentPassword" binding:"required"`
+	NewPassword     string `json:"newPassword" binding:"required"`
+	ConfirmPassword string `json:"confirmPassword" binding:"required"`
 }
 
 // ResetFlowDto 重置流量请求

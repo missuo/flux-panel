@@ -57,14 +57,20 @@ func (s *UserService) CreateUser(userDto *dto.UserDto) error {
 		return errors.New("用户已存在")
 	}
 
+	status := 1 // 默认启用
+	if userDto.Status != nil {
+		status = *userDto.Status
+	}
+
 	user := &models.User{
 		User:          userDto.User,
-		Pwd:           utils.HashPassword(userDto.Password),
-		RoleID:        userDto.RoleID,
+		Pwd:           utils.HashPassword(userDto.Pwd),
+		RoleID:        1, // 普通用户
 		ExpTime:       userDto.ExpTime,
 		Flow:          userDto.Flow,
 		Num:           userDto.Num,
 		FlowResetTime: userDto.FlowResetTime,
+		Status:        status,
 	}
 
 	return s.repo.Create(user)
@@ -92,27 +98,31 @@ func (s *UserService) UpdateUser(updateDto *dto.UserUpdateDto) error {
 		return errors.New("用户不存在")
 	}
 
+	// 不能修改管理员
+	if user.RoleID == 0 {
+		return errors.New("不能修改管理员用户信息")
+	}
+
+	// 检查用户名是否被占用
+	if updateDto.User != user.User {
+		existingUser, _ := s.repo.FindByUsername(updateDto.User)
+		if existingUser != nil && existingUser.ID != user.ID {
+			return errors.New("用户名已被其他用户使用")
+		}
+	}
+
 	// 更新字段
-	if updateDto.User != "" {
-		user.User = updateDto.User
+	user.User = updateDto.User
+	user.ExpTime = updateDto.ExpTime
+	user.Flow = updateDto.Flow
+	user.Num = updateDto.Num
+	user.FlowResetTime = updateDto.FlowResetTime
+
+	if updateDto.Pwd != "" {
+		user.Pwd = utils.HashPassword(updateDto.Pwd)
 	}
-	if updateDto.Password != "" {
-		user.Pwd = utils.HashPassword(updateDto.Password)
-	}
-	if updateDto.RoleID != nil {
-		user.RoleID = *updateDto.RoleID
-	}
-	if updateDto.ExpTime != nil {
-		user.ExpTime = *updateDto.ExpTime
-	}
-	if updateDto.Flow != nil {
-		user.Flow = *updateDto.Flow
-	}
-	if updateDto.Num != nil {
-		user.Num = *updateDto.Num
-	}
-	if updateDto.FlowResetTime != nil {
-		user.FlowResetTime = *updateDto.FlowResetTime
+	if updateDto.Status != nil {
+		user.Status = *updateDto.Status
 	}
 
 	return s.repo.Update(user)
@@ -120,6 +130,16 @@ func (s *UserService) UpdateUser(updateDto *dto.UserUpdateDto) error {
 
 // DeleteUser 删除用户
 func (s *UserService) DeleteUser(id uint) error {
+	user, err := s.repo.FindByID(id)
+	if err != nil {
+		return errors.New("用户不存在")
+	}
+
+	// 不能删除管理员
+	if user.RoleID == 0 {
+		return errors.New("不能删除管理员用户")
+	}
+
 	return s.repo.Delete(id)
 }
 
@@ -151,9 +171,23 @@ func (s *UserService) UpdatePassword(userID uint, changeDto *dto.ChangePasswordD
 		return errors.New("用户不存在")
 	}
 
-	// 验证旧密码
-	if !utils.ComparePassword(user.Pwd, changeDto.OldPassword) {
-		return errors.New("旧密码错误")
+	// 验证新密码和确认密码是否匹配
+	if changeDto.NewPassword != changeDto.ConfirmPassword {
+		return errors.New("新密码和确认密码不匹配")
+	}
+
+	// 验证当前密码
+	if !utils.ComparePassword(user.Pwd, changeDto.CurrentPassword) {
+		return errors.New("当前密码错误")
+	}
+
+	// 检查新用户名是否被占用（如果用户名有变化）
+	if changeDto.NewUsername != user.User {
+		existingUser, _ := s.repo.FindByUsername(changeDto.NewUsername)
+		if existingUser != nil && existingUser.ID != user.ID {
+			return errors.New("用户名已被其他用户使用")
+		}
+		user.User = changeDto.NewUsername
 	}
 
 	// 更新密码

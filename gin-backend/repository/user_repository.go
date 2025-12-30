@@ -32,7 +32,7 @@ func (r *UserRepository) FindByUsername(username string) (*models.User, error) {
 
 func (r *UserRepository) FindAll() ([]models.User, error) {
 	var users []models.User
-	err := r.db.Where("status = 1").Find(&users).Error
+	err := r.db.Where("status = 1 AND role_id != 0").Find(&users).Error
 	return users, err
 }
 
