@@ -127,3 +127,40 @@ func (h *NodeHandler) GetInstallCommand(c *gin.Context) {
 
 	utils.Success(c, map[string]string{"command": command})
 }
+
+// CheckNodeStatus 检查节点状态
+func (h *NodeHandler) CheckNodeStatus(c *gin.Context) {
+	var req map[string]interface{}
+	c.ShouldBindJSON(&req)
+
+	var nodeID *uint
+	if id, ok := req["nodeId"]; ok {
+		idVal := parseNodeID(id)
+		nodeID = &idVal
+	}
+
+	result, err := h.service.CheckNodeStatus(nodeID)
+	if err != nil {
+		utils.Error(c, err.Error())
+		return
+	}
+
+	utils.Success(c, result)
+}
+
+func parseNodeID(val interface{}) uint {
+	if val == nil {
+		return 0
+	}
+	switch v := val.(type) {
+	case float64:
+		return uint(v)
+	case string:
+		id, _ := strconv.ParseUint(v, 10, 32)
+		return uint(id)
+	case int:
+		return uint(v)
+	default:
+		return 0
+	}
+}

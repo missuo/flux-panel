@@ -192,3 +192,49 @@ func (h *TunnelHandler) GetUserTunnels(c *gin.Context) {
 
 	utils.Success(c, tunnels)
 }
+
+// GetTunnelByID 根据ID获取隧道
+func (h *TunnelHandler) GetTunnelByID(c *gin.Context) {
+	var req map[string]interface{}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		utils.Error(c, "参数错误")
+		return
+	}
+
+	id := parseID(req["id"])
+	if id == 0 {
+		utils.Error(c, "参数错误")
+		return
+	}
+
+	tunnel, err := h.service.GetTunnelByID(id)
+	if err != nil {
+		utils.Error(c, err.Error())
+		return
+	}
+
+	utils.Success(c, tunnel)
+}
+
+// DiagnoseTunnel 诊断隧道
+func (h *TunnelHandler) DiagnoseTunnel(c *gin.Context) {
+	var req map[string]interface{}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		utils.Error(c, "参数错误")
+		return
+	}
+
+	id := parseID(req["id"])
+	if id == 0 {
+		utils.Error(c, "参数错误")
+		return
+	}
+
+	result, err := h.service.DiagnoseTunnel(id)
+	if err != nil {
+		utils.Error(c, err.Error())
+		return
+	}
+
+	utils.Success(c, result)
+}

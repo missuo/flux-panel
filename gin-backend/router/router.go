@@ -21,6 +21,9 @@ func SetupRouter() *gin.Engine {
 	userHandler := handler.NewUserHandler(models.DB)
 	nodeHandler := handler.NewNodeHandler(models.DB)
 	tunnelHandler := handler.NewTunnelHandler(models.DB)
+	configHandler := handler.NewConfigHandler(models.DB)
+	forwardHandler := handler.NewForwardHandler(models.DB)
+	speedLimitHandler := handler.NewSpeedLimitHandler(models.DB)
 
 	// API v1路由组
 	v1 := r.Group("/api/v1")
@@ -61,6 +64,7 @@ func SetupRouter() *gin.Engine {
 			node.POST("/update", nodeHandler.UpdateNode)
 			node.POST("/delete", nodeHandler.DeleteNode)
 			node.POST("/install", nodeHandler.GetInstallCommand)
+			node.POST("/check-status", nodeHandler.CheckNodeStatus)
 		}
 
 		// 隧道相关路由
@@ -73,8 +77,10 @@ func SetupRouter() *gin.Engine {
 			{
 				adminTunnel.POST("/create", tunnelHandler.CreateTunnel)
 				adminTunnel.POST("/list", tunnelHandler.GetAllTunnels)
+				adminTunnel.POST("/get", tunnelHandler.GetTunnelByID)
 				adminTunnel.POST("/update", tunnelHandler.UpdateTunnel)
 				adminTunnel.POST("/delete", tunnelHandler.DeleteTunnel)
+				adminTunnel.POST("/diagnose", tunnelHandler.DiagnoseTunnel)
 
 				// 用户隧道权限管理
 				adminTunnel.POST("/user/assign", tunnelHandler.AssignUserTunnel)
@@ -90,6 +96,61 @@ func SetupRouter() *gin.Engine {
 				userTunnel.POST("/user/tunnel", tunnelHandler.GetUserTunnels)
 			}
 		}
+
+		// 配置相关路由
+		config := v1.Group("/config")
+		{
+			// 无需认证即可访问
+			config.POST("/list", configHandler.GetConfigs)
+			config.POST("/get", configHandler.GetConfigByName)
+
+			// 需要管理员权限
+			adminConfig := config.Group("")
+			adminConfig.Use(middleware.JWTAuth())
+			adminConfig.Use(middleware.RequireRole())
+			{
+				adminConfig.POST("/update", configHandler.UpdateConfigs)
+				adminConfig.POST("/update-single", configHandler.UpdateConfig)
+			}
+		}
+
+		// 转发相关路由
+		forward := v1.Group("/forward")
+		forward.Use(middleware.JWTAuth())
+		{
+			forward.POST("/create", forwardHandler.CreateForward)
+			forward.POST("/list", forwardHandler.GetAllForwards)
+			forward.POST("/update", forwardHandler.UpdateForward)
+			forward.POST("/delete", forwardHandler.DeleteForward)
+			forward.POST("/force-delete", forwardHandler.ForceDeleteForward)
+			forward.POST("/pause", forwardHandler.PauseForward)
+			forward.POST("/resume", forwardHandler.ResumeForward)
+			forward.POST("/diagnose", forwardHandler.DiagnoseForward)
+			forward.POST("/update-order", forwardHandler.UpdateForwardOrder)
+		}
+
+		// 限速规则相关路由
+		speedLimit := v1.Group("/speed-limit")
+		speedLimit.Use(middleware.JWTAuth())
+		speedLimit.Use(middleware.RequireRole())
+		{
+			speedLimit.POST("/create", speedLimitHandler.CreateSpeedLimit)
+			speedLimit.POST("/list", speedLimitHandler.GetAllSpeedLimits)
+			speedLimit.POST("/update", speedLimitHandler.UpdateSpeedLimit)
+			speedLimit.POST("/delete", speedLimitHandler.DeleteSpeedLimit)
+		}
+
+		// 验证码相关路由 (暂时禁用验证码)
+		captcha := v1.Group("/captcha")
+		{
+			captcha.POST("/check", func(c *gin.Context) {
+				c.JSON(200, gin.H{
+					"code": 0,
+					"msg":  "success",
+					"data": 0,
+				})
+			})
+		}
 	}
 
 	// 健康检查
@@ -98,19 +159,6 @@ func SetupRouter() *gin.Engine {
 			"status": "ok",
 		})
 	})
-
-	// 验证码相关路由 (暂时禁用验证码)
-	captcha := v1.Group("/captcha")
-	{
-		// 检查是否需要验证码 - 返回0表示不需要
-		captcha.POST("/check", func(c *gin.Context) {
-			c.JSON(200, gin.H{
-				"code": 0,
-				"msg":  "success",
-				"data": 0,
-			})
-		})
-	}
 
 	return r
 }

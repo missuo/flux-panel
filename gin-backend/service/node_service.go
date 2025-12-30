@@ -107,3 +107,36 @@ func (s *NodeService) GetInstallCommand(id uint) (string, error) {
 
 	return command, nil
 }
+
+// CheckNodeStatus 检查节点状态
+func (s *NodeService) CheckNodeStatus(nodeID *uint) ([]map[string]interface{}, error) {
+	var nodes []models.Node
+	var err error
+
+	if nodeID != nil && *nodeID > 0 {
+		node, err := s.repo.FindByID(*nodeID)
+		if err != nil {
+			return nil, errors.New("节点不存在")
+		}
+		nodes = []models.Node{*node}
+	} else {
+		nodes, err = s.repo.FindAll()
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	result := make([]map[string]interface{}, 0)
+	for _, node := range nodes {
+		// TODO: 实际检查节点状态的逻辑
+		status := map[string]interface{}{
+			"id":     node.ID,
+			"name":   node.Name,
+			"ip":     node.IP,
+			"status": "online", // 暂时返回在线状态
+		}
+		result = append(result, status)
+	}
+
+	return result, nil
+}

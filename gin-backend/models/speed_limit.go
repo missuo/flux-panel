@@ -3,9 +3,11 @@ package models
 // SpeedLimit 限速模型
 type SpeedLimit struct {
 	BaseModel
-	ForwardID int `gorm:"column:forward_id;uniqueIndex" json:"forward_id"`
-	InLimit   int `gorm:"column:in_limit;default:0" json:"in_limit"`   // 入站限速 KB/s
-	OutLimit  int `gorm:"column:out_limit;default:0" json:"out_limit"` // 出站限速 KB/s
+	Name       string `gorm:"column:name;type:varchar(100)" json:"name"`
+	Speed      int    `gorm:"column:speed" json:"speed"`
+	TunnelID   int64  `gorm:"column:tunnel_id" json:"tunnelId"`
+	TunnelName string `gorm:"column:tunnel_name;type:varchar(100)" json:"tunnelName"`
+	Status     int    `gorm:"column:status;default:0" json:"status"` // 0: 正常, 1: 删除
 }
 
 // TableName 指定表名

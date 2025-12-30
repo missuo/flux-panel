@@ -2,10 +2,10 @@ package models
 
 // ViteConfig 前端配置模型
 type ViteConfig struct {
-	BaseModel
-	ConfigKey   string `gorm:"column:config_key;type:varchar(100);uniqueIndex" json:"config_key"`
-	ConfigValue string `gorm:"column:config_value;type:text" json:"config_value"`
-	Description string `gorm:"column:description;type:varchar(255)" json:"description"`
+	ID    uint   `gorm:"primaryKey;autoIncrement" json:"id"`
+	Name  string `gorm:"column:name;type:varchar(100);uniqueIndex" json:"name"`
+	Value string `gorm:"column:value;type:text" json:"value"`
+	Time  int64  `gorm:"column:time" json:"time"`
 }
 
 // TableName 指定表名

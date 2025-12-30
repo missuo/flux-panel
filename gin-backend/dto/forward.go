@@ -2,24 +2,32 @@ package dto
 
 // ForwardDto 创建转发请求
 type ForwardDto struct {
-	UserID        int    `json:"user_id"`
-	UserName      string `json:"user_name"`
 	Name          string `json:"name" binding:"required"`
-	TunnelID      int    `json:"tunnel_id" binding:"required"`
-	InPort        int    `json:"in_port" binding:"required"`
-	OutPort       int    `json:"out_port" binding:"required"`
-	RemoteAddr    string `json:"remote_addr" binding:"required"`
-	InterfaceName string `json:"interface_name"`
+	TunnelID      int    `json:"tunnelId" binding:"required"`
+	RemoteAddr    string `json:"remoteAddr" binding:"required"`
 	Strategy      string `json:"strategy"`
+	InPort        *int   `json:"inPort"`
+	InterfaceName string `json:"interfaceName"`
 }
 
 // ForwardUpdateDto 更新转发请求
 type ForwardUpdateDto struct {
-	ID            uint    `json:"id" binding:"required"`
-	Name          *string `json:"name"`
-	InPort        *int    `json:"in_port"`
-	OutPort       *int    `json:"out_port"`
-	RemoteAddr    *string `json:"remote_addr"`
-	InterfaceName *string `json:"interface_name"`
-	Strategy      *string `json:"strategy"`
+	ID            uint   `json:"id" binding:"required"`
+	Name          string `json:"name" binding:"required"`
+	TunnelID      int    `json:"tunnelId" binding:"required"`
+	RemoteAddr    string `json:"remoteAddr" binding:"required"`
+	Strategy      string `json:"strategy"`
+	InPort        *int   `json:"inPort"`
+	InterfaceName string `json:"interfaceName"`
+}
+
+// ForwardOrderItem 转发排序项
+type ForwardOrderItem struct {
+	ID  uint `json:"id"`
+	Inx int  `json:"inx"`
+}
+
+// ForwardOrderDto 转发排序请求
+type ForwardOrderDto struct {
+	Forwards []ForwardOrderItem `json:"forwards"`
 }

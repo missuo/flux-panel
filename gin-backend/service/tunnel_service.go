@@ -155,3 +155,31 @@ func (s *TunnelService) UpdateUserTunnel(updateDto *dto.UserTunnelUpdateDto) err
 
 	return s.userTunnelRepo.Update(userTunnel)
 }
+
+// GetTunnelByID 根据ID获取隧道
+func (s *TunnelService) GetTunnelByID(id uint) (*models.Tunnel, error) {
+	tunnel, err := s.repo.FindByID(id)
+	if err != nil {
+		return nil, errors.New("隧道不存在")
+	}
+	return tunnel, nil
+}
+
+// DiagnoseTunnel 诊断隧道
+func (s *TunnelService) DiagnoseTunnel(id uint) (map[string]interface{}, error) {
+	tunnel, err := s.repo.FindByID(id)
+	if err != nil {
+		return nil, errors.New("隧道不存在")
+	}
+
+	// TODO: 实际的隧道诊断逻辑，需要与Gost交互
+	result := map[string]interface{}{
+		"id":        tunnel.ID,
+		"name":      tunnel.Name,
+		"status":    "online",
+		"latency":   0,
+		"message":   "隧道诊断功能待实现",
+	}
+
+	return result, nil
+}
