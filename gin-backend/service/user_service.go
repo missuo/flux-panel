@@ -22,7 +22,7 @@ func NewUserService(db *gorm.DB) *UserService {
 
 // Login 用户登录
 func (s *UserService) Login(loginDto *dto.LoginDto) (map[string]interface{}, error) {
-	user, err := s.repo.FindByUsername(loginDto.User)
+	user, err := s.repo.FindByUsername(loginDto.Username)
 	if err != nil {
 		return nil, errors.New("用户名或密码错误")
 	}
@@ -38,13 +38,14 @@ func (s *UserService) Login(loginDto *dto.LoginDto) (map[string]interface{}, err
 		return nil, errors.New("生成token失败")
 	}
 
+	// 检查是否使用默认密码
+	requirePasswordChange := loginDto.Username == "admin_user" && loginDto.Password == "admin_user"
+
 	return map[string]interface{}{
-		"token": token,
-		"user": map[string]interface{}{
-			"id":      user.ID,
-			"user":    user.User,
-			"role_id": user.RoleID,
-		},
+		"token":                 token,
+		"role_id":               user.RoleID,
+		"name":                  user.User,
+		"requirePasswordChange": requirePasswordChange,
 	}, nil
 }
 
@@ -161,6 +162,11 @@ func (s *UserService) UpdatePassword(userID uint, changeDto *dto.ChangePasswordD
 }
 
 // ResetFlow 重置流量
-func (s *UserService) ResetFlow(userID uint) error {
-	return s.repo.ResetFlow(userID)
+func (s *UserService) ResetFlow(resetDto *dto.ResetFlowDto) error {
+	if resetDto.Type == 1 {
+		// 清零账号流量
+		return s.repo.ResetFlow(resetDto.ID)
+	}
+	// Type == 2: 清零隧道流量 - 暂不实现
+	return nil
 }

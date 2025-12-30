@@ -159,7 +159,7 @@ func (h *UserHandler) ResetFlow(c *gin.Context) {
 		return
 	}
 
-	if err := h.service.ResetFlow(resetDto.UserID); err != nil {
+	if err := h.service.ResetFlow(&resetDto); err != nil {
 		utils.Error(c, err.Error())
 		return
 	}

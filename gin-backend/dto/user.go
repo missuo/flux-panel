@@ -2,8 +2,9 @@ package dto
 
 // LoginDto 登录请求
 type LoginDto struct {
-	User     string `json:"user" binding:"required"`
-	Password string `json:"password" binding:"required"`
+	Username  string `json:"username" binding:"required"`
+	Password  string `json:"password" binding:"required"`
+	CaptchaId string `json:"captchaId"`
 }
 
 // UserDto 创建用户请求
@@ -37,7 +38,8 @@ type ChangePasswordDto struct {
 
 // ResetFlowDto 重置流量请求
 type ResetFlowDto struct {
-	UserID uint `json:"user_id" binding:"required"`
+	ID   uint `json:"id" binding:"required"`
+	Type int  `json:"type" binding:"required"`
 }
 
 // UserPackageDto 用户套餐信息响应
