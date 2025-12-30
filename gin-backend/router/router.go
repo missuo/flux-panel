@@ -99,5 +99,18 @@ func SetupRouter() *gin.Engine {
 		})
 	})
 
+	// 验证码相关路由 (暂时禁用验证码)
+	captcha := v1.Group("/captcha")
+	{
+		// 检查是否需要验证码 - 返回0表示不需要
+		captcha.POST("/check", func(c *gin.Context) {
+			c.JSON(200, gin.H{
+				"code": 0,
+				"msg":  "success",
+				"data": 0,
+			})
+		})
+	}
+
 	return r
 }
