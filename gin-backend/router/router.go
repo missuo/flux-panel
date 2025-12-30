@@ -24,6 +24,9 @@ func SetupRouter() *gin.Engine {
 	configHandler := handler.NewConfigHandler(models.DB)
 	forwardHandler := handler.NewForwardHandler(models.DB)
 	speedLimitHandler := handler.NewSpeedLimitHandler(models.DB)
+	captchaHandler := handler.NewCaptchaHandler(models.DB)
+	openApiHandler := handler.NewOpenApiHandler(models.DB)
+	flowHandler := handler.NewFlowHandler(models.DB)
 
 	// API v1路由组
 	v1 := r.Group("/api/v1")
@@ -138,19 +141,30 @@ func SetupRouter() *gin.Engine {
 			speedLimit.POST("/list", speedLimitHandler.GetAllSpeedLimits)
 			speedLimit.POST("/update", speedLimitHandler.UpdateSpeedLimit)
 			speedLimit.POST("/delete", speedLimitHandler.DeleteSpeedLimit)
+			speedLimit.POST("/tunnels", speedLimitHandler.GetTunnels)
 		}
 
-		// 验证码相关路由 (暂时禁用验证码)
+		// 验证码相关路由
 		captcha := v1.Group("/captcha")
 		{
-			captcha.POST("/check", func(c *gin.Context) {
-				c.JSON(200, gin.H{
-					"code": 0,
-					"msg":  "success",
-					"data": 0,
-				})
-			})
+			captcha.POST("/check", captchaHandler.Check)
+			captcha.POST("/generate", captchaHandler.Generate)
+			captcha.POST("/verify", captchaHandler.Verify)
 		}
+
+		// OpenAPI相关路由
+		openApi := v1.Group("/open_api")
+		{
+			openApi.GET("/sub_store", openApiHandler.SubStore)
+		}
+	}
+
+	// 流量上报相关路由 (无需认证，节点使用secret验证)
+	flow := r.Group("/flow")
+	{
+		flow.POST("/config", flowHandler.Config)
+		flow.Any("/test", flowHandler.Test)
+		flow.Any("/upload", flowHandler.Upload)
 	}
 
 	// 健康检查

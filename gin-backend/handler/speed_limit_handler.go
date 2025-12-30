@@ -10,12 +10,14 @@ import (
 )
 
 type SpeedLimitHandler struct {
-	service *service.SpeedLimitService
+	service       *service.SpeedLimitService
+	tunnelService *service.TunnelService
 }
 
 func NewSpeedLimitHandler(db *gorm.DB) *SpeedLimitHandler {
 	return &SpeedLimitHandler{
-		service: service.NewSpeedLimitService(db),
+		service:       service.NewSpeedLimitService(db),
+		tunnelService: service.NewTunnelService(db),
 	}
 }
 
@@ -81,4 +83,14 @@ func (h *SpeedLimitHandler) DeleteSpeedLimit(c *gin.Context) {
 	}
 
 	utils.Success(c, "限速规则删除成功")
+}
+
+// GetTunnels 获取所有隧道（用于限速规则下拉选择）
+func (h *SpeedLimitHandler) GetTunnels(c *gin.Context) {
+	tunnels, err := h.tunnelService.GetAllTunnels()
+	if err != nil {
+		utils.Error(c, err.Error())
+		return
+	}
+	utils.Success(c, tunnels)
 }
