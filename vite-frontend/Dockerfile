@@ -12,6 +12,8 @@ RUN npm run build
 # 生产阶段
 FROM nginx:stable-alpine AS production-stage
 
+RUN apk --no-cache add wget
+
 COPY nginx.conf /etc/nginx/nginx.conf
 
 COPY --from=builder /app/dist /usr/share/nginx/html
