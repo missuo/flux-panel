@@ -20,19 +20,19 @@ func (r *UserRepository) Create(user *models.User) error {
 
 func (r *UserRepository) FindByID(id uint) (*models.User, error) {
 	var user models.User
-	err := r.db.Where("id = ? AND status = 0", id).First(&user).Error
+	err := r.db.Where("id = ? AND status = 1", id).First(&user).Error
 	return &user, err
 }
 
 func (r *UserRepository) FindByUsername(username string) (*models.User, error) {
 	var user models.User
-	err := r.db.Where("user = ? AND status = 0", username).First(&user).Error
+	err := r.db.Where("user = ? AND status = 1", username).First(&user).Error
 	return &user, err
 }
 
 func (r *UserRepository) FindAll() ([]models.User, error) {
 	var users []models.User
-	err := r.db.Where("status = 0").Find(&users).Error
+	err := r.db.Where("status = 1").Find(&users).Error
 	return users, err
 }
 
