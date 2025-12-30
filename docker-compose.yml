@@ -18,8 +18,6 @@ services:
       --collation-server=utf8mb4_unicode_ci
       --max_connections=1000
       --innodb_buffer_pool_size=256M
-    ports:
-      - "${DB_PORT:-3306}:3306"
     networks:
       - flux-panel-network
     healthcheck:
