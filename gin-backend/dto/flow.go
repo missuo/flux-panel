@@ -18,3 +18,9 @@ type GostConfigDto struct {
 type ConfigItem struct {
 	Name string `json:"name"`
 }
+
+// EncryptedMessage 加密消息
+type EncryptedMessage struct {
+	Encrypted bool   `json:"encrypted"`
+	Data      string `json:"data"`
+}

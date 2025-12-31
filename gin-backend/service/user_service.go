@@ -11,17 +11,36 @@ import (
 )
 
 type UserService struct {
-	repo *repository.UserRepository
+	repo          *repository.UserRepository
+	configService *ConfigService
 }
 
 func NewUserService(db *gorm.DB) *UserService {
 	return &UserService{
-		repo: repository.NewUserRepository(db),
+		repo:          repository.NewUserRepository(db),
+		configService: NewConfigService(db),
 	}
 }
 
 // Login 用户登录
-func (s *UserService) Login(loginDto *dto.LoginDto) (map[string]interface{}, error) {
+func (s *UserService) Login(loginDto *dto.LoginDto, validateCaptcha func(string) bool) (map[string]interface{}, error) {
+	// 检查是否启用验证码
+	captchaEnabled := false
+	config, err := s.configService.GetConfigByName("captcha_enabled")
+	if err == nil && config.Value == "true" {
+		captchaEnabled = true
+	}
+
+	// 如果启用验证码，验证 captchaId
+	if captchaEnabled {
+		if loginDto.CaptchaId == "" {
+			return nil, errors.New("验证码校验失败")
+		}
+		if validateCaptcha != nil && !validateCaptcha(loginDto.CaptchaId) {
+			return nil, errors.New("验证码校验失败")
+		}
+	}
+
 	user, err := s.repo.FindByUsername(loginDto.Username)
 	if err != nil {
 		return nil, errors.New("用户名或密码错误")

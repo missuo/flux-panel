@@ -32,7 +32,7 @@ func main() {
 	}
 
 	// 初始化定时任务
-	task.InitScheduler()
+	task.InitScheduler(models.DB)
 
 	// 设置 Gin 模式
 	if config.AppConfig.Server.Mode == "release" {

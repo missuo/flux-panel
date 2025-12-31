@@ -28,7 +28,7 @@ func (h *UserHandler) Login(c *gin.Context) {
 		return
 	}
 
-	data, err := h.service.Login(&loginDto)
+	data, err := h.service.Login(&loginDto, ValidateCaptchaToken)
 	if err != nil {
 		utils.Error(c, err.Error())
 		return

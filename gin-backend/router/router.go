@@ -4,6 +4,7 @@ import (
 	"flux-panel/handler"
 	"flux-panel/middleware"
 	"flux-panel/models"
+	"flux-panel/websocket"
 
 	"github.com/gin-gonic/gin"
 )
@@ -166,6 +167,10 @@ func SetupRouter() *gin.Engine {
 		flow.Any("/test", flowHandler.Test)
 		flow.Any("/upload", flowHandler.Upload)
 	}
+
+	// WebSocket 节点连接
+	wsHandler := websocket.NewHandler(models.DB)
+	r.GET("/ws", wsHandler.HandleConnection)
 
 	// 健康检查
 	r.GET("/health", func(c *gin.Context) {

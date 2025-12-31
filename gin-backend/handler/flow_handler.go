@@ -4,7 +4,9 @@ import (
 	"encoding/json"
 	"flux-panel/dto"
 	"flux-panel/models"
+	"flux-panel/utils"
 	"log"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -61,9 +63,10 @@ func (h *FlowHandler) Config(c *gin.Context) {
 		return
 	}
 
-	// TODO: 实际的配置清理逻辑
-	log.Printf("节点 %d 配置数据接收成功", node.ID)
+	// 异步清理孤立配置
+	go h.cleanOrphanedConfigs(node.ID, &gostConfig)
 
+	log.Printf("节点 %d 配置数据接收成功", node.ID)
 	c.String(200, successResponse)
 }
 
@@ -77,9 +80,8 @@ func (h *FlowHandler) Upload(c *gin.Context) {
 	secret := c.Query("secret")
 
 	// 验证节点
-	var nodeCount int64
-	h.db.Model(&models.Node{}).Where("secret = ?", secret).Count(&nodeCount)
-	if nodeCount == 0 {
+	var node models.Node
+	if err := h.db.Where("secret = ?", secret).First(&node).Error; err != nil {
 		c.String(200, successResponse)
 		return
 	}
@@ -91,26 +93,62 @@ func (h *FlowHandler) Upload(c *gin.Context) {
 		return
 	}
 
+	// 解密数据（如果加密）
+	decryptedData, err := h.decryptIfNeeded(rawData, secret)
+	if err != nil {
+		log.Printf("解密数据失败: %v", err)
+		c.String(200, successResponse)
+		return
+	}
+
 	// 解析流量数据
 	var flowData dto.FlowDto
-	if err := json.Unmarshal(rawData, &flowData); err != nil {
+	if err := json.Unmarshal(decryptedData, &flowData); err != nil {
 		log.Printf("解析流量数据失败: %v", err)
 		c.String(200, successResponse)
 		return
 	}
 
-	// 跳过web_api
+	// 跳过 web_api
 	if flowData.N == "web_api" {
 		c.String(200, successResponse)
 		return
 	}
 
-	log.Printf("节点上报流量数据: %+v", flowData)
+	log.Printf("节点 %d 上报流量数据: %+v", node.ID, flowData)
 
 	// 处理流量数据
 	h.processFlowData(&flowData)
 
 	c.String(200, successResponse)
+}
+
+// decryptIfNeeded 检测并解密加密消息
+func (h *FlowHandler) decryptIfNeeded(rawData []byte, secret string) ([]byte, error) {
+	// 尝试解析为加密消息
+	var encMsg dto.EncryptedMessage
+	if err := json.Unmarshal(rawData, &encMsg); err != nil {
+		// 不是加密消息格式，直接返回原始数据
+		return rawData, nil
+	}
+
+	// 检查是否标记为加密
+	if !encMsg.Encrypted || encMsg.Data == "" {
+		return rawData, nil
+	}
+
+	// 获取加密器并解密
+	crypto, err := utils.GetOrCreateCrypto(secret)
+	if err != nil {
+		return nil, err
+	}
+
+	decrypted, err := crypto.DecryptString(encMsg.Data)
+	if err != nil {
+		return nil, err
+	}
+
+	return []byte(decrypted), nil
 }
 
 func (h *FlowHandler) processFlowData(flowData *dto.FlowDto) {
@@ -155,8 +193,8 @@ func (h *FlowHandler) processFlowData(flowData *dto.FlowDto) {
 
 	// 非管理员转发检查限制
 	if userTunnelID != defaultUserTunnelID {
-		h.checkUserLimits(userID)
-		h.checkUserTunnelLimits(userTunnelID, userID)
+		h.checkUserLimits(userID, flowData.N)
+		h.checkUserTunnelLimits(userTunnelID, userID, flowData.N)
 	}
 }
 
@@ -209,7 +247,7 @@ func (h *FlowHandler) updateUserTunnelFlow(userTunnelID string, inFlow, outFlow 
 		})
 }
 
-func (h *FlowHandler) checkUserLimits(userID string) {
+func (h *FlowHandler) checkUserLimits(userID, serviceName string) {
 	var user models.User
 	if err := h.db.First(&user, userID).Error; err != nil {
 		return
@@ -219,23 +257,23 @@ func (h *FlowHandler) checkUserLimits(userID string) {
 	userFlowLimit := user.Flow * bytesToGB
 	userCurrentFlow := user.InFlow + user.OutFlow
 	if userFlowLimit < userCurrentFlow {
-		h.pauseUserServices(userID)
+		h.pauseUserServices(userID, serviceName)
 		return
 	}
 
 	// 检查到期时间
 	if user.ExpTime > 0 && user.ExpTime <= time.Now().UnixMilli() {
-		h.pauseUserServices(userID)
+		h.pauseUserServices(userID, serviceName)
 		return
 	}
 
 	// 检查用户状态
 	if user.Status != 1 {
-		h.pauseUserServices(userID)
+		h.pauseUserServices(userID, serviceName)
 	}
 }
 
-func (h *FlowHandler) checkUserTunnelLimits(userTunnelID, userID string) {
+func (h *FlowHandler) checkUserTunnelLimits(userTunnelID, userID, serviceName string) {
 	var userTunnel models.UserTunnel
 	if err := h.db.First(&userTunnel, userTunnelID).Error; err != nil {
 		return
@@ -244,33 +282,115 @@ func (h *FlowHandler) checkUserTunnelLimits(userTunnelID, userID string) {
 	// 检查流量限制
 	flow := userTunnel.InFlow + userTunnel.OutFlow
 	if flow >= userTunnel.Flow*bytesToGB {
-		h.pauseTunnelServices(userTunnel.TunnelID, userID)
+		h.pauseTunnelServices(userTunnel.TunnelID, userID, serviceName)
 		return
 	}
 
 	// 检查到期时间
 	if userTunnel.ExpTime > 0 && userTunnel.ExpTime <= time.Now().UnixMilli() {
-		h.pauseTunnelServices(userTunnel.TunnelID, userID)
+		h.pauseTunnelServices(userTunnel.TunnelID, userID, serviceName)
+		return
+	}
+
+	// 检查隧道状态
+	if userTunnel.Status != 1 {
+		h.pauseTunnelServices(userTunnel.TunnelID, userID, serviceName)
 	}
 }
 
-func (h *FlowHandler) pauseUserServices(userID string) {
-	// TODO: 实际的暂停服务逻辑，需要与Gost交互
+func (h *FlowHandler) pauseUserServices(userID, serviceName string) {
 	var forwards []models.Forward
 	h.db.Where("user_id = ?", userID).Find(&forwards)
 
+	h.pauseForwards(forwards, serviceName)
+}
+
+func (h *FlowHandler) pauseTunnelServices(tunnelID uint, userID, serviceName string) {
+	var forwards []models.Forward
+	h.db.Where("tunnel_id = ? AND user_id = ?", tunnelID, userID).Find(&forwards)
+
+	h.pauseForwards(forwards, serviceName)
+}
+
+func (h *FlowHandler) pauseForwards(forwards []models.Forward, serviceName string) {
 	for _, forward := range forwards {
+		var tunnel models.Tunnel
+		if err := h.db.First(&tunnel, forward.TunnelID).Error; err != nil {
+			continue
+		}
+
+		// 暂停入口节点服务
+		utils.PauseService(uint(tunnel.InNodeID), serviceName)
+
+		// 隧道类型(2)也需要暂停出口节点
+		if tunnel.Type == 2 {
+			utils.PauseRemoteService(uint(tunnel.OutNodeID), serviceName)
+		}
+
+		// 更新转发状态
 		h.db.Model(&models.Forward{}).Where("id = ?", forward.ID).Update("status", 0)
 	}
 }
 
-func (h *FlowHandler) pauseTunnelServices(tunnelID uint, userID string) {
-	// TODO: 实际的暂停服务逻辑，需要与Gost交互
-	var forwards []models.Forward
-	h.db.Where("tunnel_id = ? AND user_id = ?", tunnelID, userID).Find(&forwards)
+// cleanOrphanedConfigs 清理孤立的 Gost 配置
+func (h *FlowHandler) cleanOrphanedConfigs(nodeID uint, gostConfig *dto.GostConfigDto) {
+	// 清理孤立的服务
+	for _, service := range gostConfig.Services {
+		if service.Name == "web_api" {
+			continue
+		}
 
-	for _, forward := range forwards {
-		h.db.Model(&models.Forward{}).Where("id = ?", forward.ID).Update("status", 0)
+		parts := strings.Split(service.Name, "_")
+		if len(parts) < 4 {
+			continue
+		}
+
+		forwardID := parts[0]
+		userID := parts[1]
+		userTunnelID := parts[2]
+		serviceType := parts[3]
+
+		var forward models.Forward
+		if err := h.db.First(&forward, forwardID).Error; err != nil {
+			// 转发不存在，删除服务
+			serviceName := forwardID + "_" + userID + "_" + userTunnelID
+			if serviceType == "tcp" || serviceType == "udp" {
+				utils.DeleteService(nodeID, serviceName)
+			} else if serviceType == "tls" {
+				utils.DeleteRemoteService(nodeID, serviceName)
+			}
+			log.Printf("删除孤立的服务: %s (节点: %d)", service.Name, nodeID)
+		}
+	}
+
+	// 清理孤立的链
+	for _, chain := range gostConfig.Chains {
+		parts := strings.Split(chain.Name, "_")
+		if len(parts) < 4 {
+			continue
+		}
+
+		forwardID := parts[0]
+
+		var forward models.Forward
+		if err := h.db.First(&forward, forwardID).Error; err != nil {
+			utils.DeleteChains(nodeID, chain.Name)
+			log.Printf("删除孤立的链: %s (节点: %d)", chain.Name, nodeID)
+		}
+	}
+
+	// 清理孤立的限流器
+	for _, limiter := range gostConfig.Limiters {
+		limiterID, err := strconv.ParseUint(limiter.Name, 10, 64)
+		if err != nil {
+			continue
+		}
+
+		var speedLimit models.SpeedLimit
+		if err := h.db.First(&speedLimit, limiterID).Error; err != nil {
+			utils.DeleteLimiters(nodeID, uint(limiterID))
+			log.Printf("删除孤立的限流器: %s (节点: %d)", limiter.Name, nodeID)
+		}
 	}
 }
 
