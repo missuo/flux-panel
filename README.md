@@ -37,6 +37,10 @@ curl -L https://raw.githubusercontent.com/missuo/flux-panel/refs/heads/main/inst
 
 > ⚠️ Please change the default password immediately after the first login!
 
+## iOS App
+
+Download the iOS App via TestFlight: [https://testflight.apple.com/join/vxkZ9xzn](https://testflight.apple.com/join/vxkZ9xzn)
+
 ## Disclaimer
 
 This project is for personal learning and research purposes only and is a secondary development based on open-source projects.
