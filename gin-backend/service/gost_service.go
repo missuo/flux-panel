@@ -1,4 +1,4 @@
-package utils
+package service
 
 import (
 	"flux-panel/websocket"
@@ -15,12 +15,12 @@ type GostResponse struct {
 
 // Tunnel 隧道信息（用于 Gost 配置）
 type Tunnel struct {
-	ID             uint
-	Type           int    // 1=端口转发, 2=隧道
-	Protocol       string // tls, quic 等
-	TcpListenAddr  string
-	UdpListenAddr  string
-	InterfaceName  string
+	ID            uint
+	Type          int    // 1=端口转发, 2=隧道
+	Protocol      string // tls, quic 等
+	TcpListenAddr string
+	UdpListenAddr string
+	InterfaceName string
 }
 
 // AddLimiters 添加限流器

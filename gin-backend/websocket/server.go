@@ -3,8 +3,10 @@ package websocket
 import (
 	"encoding/json"
 	"errors"
+	"flux-panel/utils"
 	"log"
 	"net/http"
+	"strings"
 	"sync"
 	"time"
 
@@ -43,6 +45,7 @@ type Response struct {
 // NodeConnection 节点连接
 type NodeConnection struct {
 	NodeID     uint
+	Secret     string
 	Conn       *websocket.Conn
 	Send       chan []byte
 	Done       chan struct{}
@@ -88,7 +91,7 @@ func GetServer() *Server {
 }
 
 // AddConnection 添加节点连接
-func (s *Server) AddConnection(nodeID uint, conn *websocket.Conn) *NodeConnection {
+func (s *Server) AddConnection(nodeID uint, secret string, conn *websocket.Conn) *NodeConnection {
 	s.mutex.Lock()
 	defer s.mutex.Unlock()
 
@@ -100,6 +103,7 @@ func (s *Server) AddConnection(nodeID uint, conn *websocket.Conn) *NodeConnectio
 
 	nc := &NodeConnection{
 		NodeID:     nodeID,
+		Secret:     secret,
 		Conn:       conn,
 		Send:       make(chan []byte, 256),
 		Done:       make(chan struct{}),
@@ -257,6 +261,46 @@ func (nc *NodeConnection) readPump() {
 			return
 		}
 
+		// 尝试解密
+		var encMsg struct {
+			Encrypted bool   `json:"encrypted"`
+			Data      string `json:"data"`
+		}
+
+		if err := json.Unmarshal(message, &encMsg); err == nil && encMsg.Encrypted && encMsg.Data != "" {
+			crypto, err := utils.GetOrCreateCrypto(nc.Secret)
+			if err == nil {
+				decrypted, err := crypto.DecryptString(encMsg.Data)
+				if err == nil {
+					message = []byte(decrypted)
+				} else {
+					log.Printf("节点 %d 解密失败: %v", nc.NodeID, err)
+				}
+			}
+		}
+
+		// 检查系统信息 ACK
+		if strings.Contains(string(message), "memory_usage") {
+			ackMsg := map[string]string{"type": "call"}
+			ackBytes, _ := json.Marshal(ackMsg)
+			if nc.Secret != "" {
+				// 发送加密的 ACK
+				crypto, _ := utils.GetOrCreateCrypto(nc.Secret)
+				if crypto != nil {
+					enc, _ := crypto.EncryptString(string(ackBytes))
+					ackBytes, _ = json.Marshal(map[string]interface{}{
+						"encrypted": true,
+						"data":      enc,
+						"timestamp": time.Now().Unix(),
+					})
+				}
+			}
+
+			nc.mutex.Lock()
+			nc.Conn.WriteMessage(websocket.TextMessage, ackBytes)
+			nc.mutex.Unlock()
+		}
+
 		// 尝试解析为响应格式
 		var resp struct {
 			ID      string      `json:"id"`
@@ -267,8 +311,9 @@ func (nc *NodeConnection) readPump() {
 		}
 
 		if err := json.Unmarshal(message, &resp); err != nil {
-			log.Printf("节点 %d 解析消息失败: %v", nc.NodeID, err)
-			continue
+			// 如果不是 JSON，或者是其他格式，尝试作为系统信息处理
+			// log.Printf("节点 %d 解析消息失败: %v", nc.NodeID, err)
+			// continue
 		}
 
 		// 检查是否为对 Panel 请求的响应
@@ -298,11 +343,17 @@ func (nc *NodeConnection) readPump() {
 		}
 
 		// 如果 Type 为空，可能是旧版 Agent 或其他格式，默认为 info
+		// 对于系统信息，Spring Boot 逻辑是把整个 message作为data
 		if broadcastMsg["type"] == "" {
 			broadcastMsg["type"] = "info"
-			// 这种情况下 resp.Data 可能是空的因为 Unmarshal 没对上
-			// 尝试把整个 message 作为 data? 或者假设 resp.Data 即使字段不对也能解析部分？
-			// Agent 发送的是 {"type": "info", "data": {...}}，所以上面的 Unmarshal 应该能解析出 Data 和 Type
+			// 尝试解析 message 为 map
+			var rawData interface{}
+			if err := json.Unmarshal(message, &rawData); err == nil {
+				broadcastMsg["data"] = rawData
+			} else {
+				// 无法解析，可能就不是系统信息
+				continue
+			}
 		}
 
 		msgBytes, err := json.Marshal(broadcastMsg)

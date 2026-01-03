@@ -24,16 +24,19 @@ func (r *NodeRepository) FindByID(id uint) (*models.Node, error) {
 	return &node, err
 }
 
+// FindAll 获取所有节点
 func (r *NodeRepository) FindAll() ([]models.Node, error) {
 	var nodes []models.Node
-	err := r.db.Where("status = 0").Find(&nodes).Error
+	err := r.db.Find(&nodes).Error
 	return nodes, err
 }
 
+// Update 更新节点
 func (r *NodeRepository) Update(node *models.Node) error {
 	return r.db.Save(node).Error
 }
 
+// Delete 删除节点
 func (r *NodeRepository) Delete(id uint) error {
-	return r.db.Model(&models.Node{}).Where("id = ?", id).Update("status", 1).Error
+	return r.db.Delete(&models.Node{}, id).Error
 }

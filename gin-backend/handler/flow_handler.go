@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"flux-panel/dto"
 	"flux-panel/models"
+	"flux-panel/service"
 	"flux-panel/utils"
 	"log"
 	"strconv"
@@ -319,12 +320,13 @@ func (h *FlowHandler) pauseForwards(forwards []models.Forward, serviceName strin
 			continue
 		}
 
+		// ... (Inside pauseForwards)
 		// 暂停入口节点服务
-		utils.PauseService(uint(tunnel.InNodeID), serviceName)
+		service.PauseService(uint(tunnel.InNodeID), serviceName)
 
 		// 隧道类型(2)也需要暂停出口节点
 		if tunnel.Type == 2 {
-			utils.PauseRemoteService(uint(tunnel.OutNodeID), serviceName)
+			service.PauseRemoteService(uint(tunnel.OutNodeID), serviceName)
 		}
 
 		// 更新转发状态
@@ -335,12 +337,12 @@ func (h *FlowHandler) pauseForwards(forwards []models.Forward, serviceName strin
 // cleanOrphanedConfigs 清理孤立的 Gost 配置
 func (h *FlowHandler) cleanOrphanedConfigs(nodeID uint, gostConfig *dto.GostConfigDto) {
 	// 清理孤立的服务
-	for _, service := range gostConfig.Services {
-		if service.Name == "web_api" {
+	for _, svc := range gostConfig.Services {
+		if svc.Name == "web_api" {
 			continue
 		}
 
-		parts := strings.Split(service.Name, "_")
+		parts := strings.Split(svc.Name, "_")
 		if len(parts) < 4 {
 			continue
 		}
@@ -355,11 +357,11 @@ func (h *FlowHandler) cleanOrphanedConfigs(nodeID uint, gostConfig *dto.GostConf
 			// 转发不存在，删除服务
 			serviceName := forwardID + "_" + userID + "_" + userTunnelID
 			if serviceType == "tcp" || serviceType == "udp" {
-				utils.DeleteService(nodeID, serviceName)
+				service.DeleteService(nodeID, serviceName)
 			} else if serviceType == "tls" {
-				utils.DeleteRemoteService(nodeID, serviceName)
+				service.DeleteRemoteService(nodeID, serviceName)
 			}
-			log.Printf("删除孤立的服务: %s (节点: %d)", service.Name, nodeID)
+			log.Printf("删除孤立的服务: %s (节点: %d)", svc.Name, nodeID)
 		}
 	}
 
@@ -374,7 +376,7 @@ func (h *FlowHandler) cleanOrphanedConfigs(nodeID uint, gostConfig *dto.GostConf
 
 		var forward models.Forward
 		if err := h.db.First(&forward, forwardID).Error; err != nil {
-			utils.DeleteChains(nodeID, chain.Name)
+			service.DeleteChains(nodeID, chain.Name)
 			log.Printf("删除孤立的链: %s (节点: %d)", chain.Name, nodeID)
 		}
 	}
@@ -388,7 +390,7 @@ func (h *FlowHandler) cleanOrphanedConfigs(nodeID uint, gostConfig *dto.GostConf
 
 		var speedLimit models.SpeedLimit
 		if err := h.db.First(&speedLimit, limiterID).Error; err != nil {
-			utils.DeleteLimiters(nodeID, uint(limiterID))
+			service.DeleteLimiters(nodeID, uint(limiterID))
 			log.Printf("删除孤立的限流器: %s (节点: %d)", limiter.Name, nodeID)
 		}
 	}

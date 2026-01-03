@@ -2,7 +2,7 @@ package task
 
 import (
 	"flux-panel/models"
-	"flux-panel/utils"
+	"flux-panel/service"
 	"log"
 	"time"
 
@@ -285,13 +285,12 @@ func pauseForwardService(forward *models.Forward, userTunnelID uint) {
 		return
 	}
 
-	serviceName := utils.BuildServiceName(forward.ID, forward.UserID, userTunnelID)
+	serviceName := service.BuildServiceName(forward.ID, forward.UserID, userTunnelID)
+	log.Printf("Setting %s to disabled due to traffic limit exceeded", serviceName)
 
-	// 暂停入口节点服务
-	utils.PauseService(uint(tunnel.InNodeID), serviceName)
-
-	// 隧道类型也需要暂停出口节点
-	if tunnel.Type == 2 {
-		utils.PauseRemoteService(uint(tunnel.OutNodeID), serviceName)
+	if tunnel.Type == 1 {
+		service.PauseService(tunnel.OutNodeID, serviceName)
+	} else if tunnel.Type == 2 {
+		service.PauseRemoteService(tunnel.OutNodeID, serviceName)
 	}
 }

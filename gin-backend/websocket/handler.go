@@ -127,7 +127,9 @@ func (h *Handler) HandleConnection(c *gin.Context) {
 	}
 
 	// 更新节点状态和参数
-	updates := map[string]interface{}{}
+	updates := map[string]interface{}{
+		"status": 1, // 在线
+	}
 
 	if version != "" {
 		updates["version"] = version
@@ -165,7 +167,7 @@ func (h *Handler) HandleConnection(c *gin.Context) {
 	}
 
 	// 添加到连接管理器，并设置断开回调
-	nc := GetServer().AddConnection(node.ID, conn)
+	nc := GetServer().AddConnection(node.ID, secret, conn)
 
 	// 设置连接断开时的回调
 	go h.handleDisconnect(nc, node.ID)
@@ -178,7 +180,8 @@ func (h *Handler) handleDisconnect(nc *NodeConnection, nodeID uint) {
 
 	// 检查是否还有其他连接
 	if GetServer().GetConnection(nodeID) == nil {
-		// 不再更新节点状态为离线
+		// 更新状态为离线
+		h.db.Model(&Node{}).Where("id = ?", nodeID).Update("status", 0)
 		log.Printf("节点 %d 已断开所有连接", nodeID)
 
 		// 广播下线消息
