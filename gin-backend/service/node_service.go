@@ -195,12 +195,15 @@ func (s *NodeService) CheckNodeStatus(nodeID *uint) ([]map[string]interface{}, e
 
 	result := make([]map[string]interface{}, 0)
 	for _, node := range nodes {
-		// TODO: 实际检查节点状态的逻辑
+		statusStr := "offline"
+		if node.Status == 1 {
+			statusStr = "online"
+		}
 		status := map[string]interface{}{
 			"id":     node.ID,
 			"name":   node.Name,
 			"ip":     node.IP,
-			"status": "online", // 暂时返回在线状态
+			"status": statusStr,
 		}
 		result = append(result, status)
 	}

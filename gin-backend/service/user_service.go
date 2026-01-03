@@ -11,14 +11,24 @@ import (
 )
 
 type UserService struct {
-	repo          *repository.UserRepository
-	configService *ConfigService
+	repo           *repository.UserRepository
+	configService  *ConfigService
+	userTunnelRepo *repository.UserTunnelRepository
+	forwardRepo    *repository.ForwardRepository
+	statsRepo      *repository.StatisticsFlowRepository
+	tunnelRepo     *repository.TunnelRepository
+	nodeRepo       *repository.NodeRepository
 }
 
 func NewUserService(db *gorm.DB) *UserService {
 	return &UserService{
-		repo:          repository.NewUserRepository(db),
-		configService: NewConfigService(db),
+		repo:           repository.NewUserRepository(db),
+		configService:  NewConfigService(db),
+		userTunnelRepo: repository.NewUserTunnelRepository(db),
+		forwardRepo:    repository.NewForwardRepository(db),
+		statsRepo:      repository.NewStatisticsFlowRepository(db),
+		tunnelRepo:     repository.NewTunnelRepository(db),
+		nodeRepo:       repository.NewNodeRepository(db),
 	}
 }
 
@@ -59,6 +69,27 @@ func (s *UserService) Login(loginDto *dto.LoginDto, validateCaptcha func(string)
 
 	// 检查是否使用默认密码
 	requirePasswordChange := loginDto.Username == "admin_user" && loginDto.Password == "admin_user"
+
+	// 如果是管理员，确保有无限套餐
+	if user.RoleID == 0 {
+		needUpdate := false
+		if user.Flow != 99999 {
+			user.Flow = 99999
+			needUpdate = true
+		}
+		if user.Num != 99999 {
+			user.Num = 99999
+			needUpdate = true
+		}
+		if user.Status != 1 {
+			user.Status = 1
+			needUpdate = true
+		}
+
+		if needUpdate {
+			s.repo.Update(user)
+		}
+	}
 
 	return map[string]interface{}{
 		"token":                 token,
@@ -163,15 +194,15 @@ func (s *UserService) DeleteUser(id uint) error {
 }
 
 // GetUserPackageInfo 获取用户套餐信息
-func (s *UserService) GetUserPackageInfo(userID uint) (*dto.UserPackageDto, error) {
+func (s *UserService) GetUserPackageInfo(userID uint) (*dto.UserDashboardResponse, error) {
 	user, err := s.repo.FindByID(userID)
 	if err != nil {
 		return nil, errors.New("用户不存在")
 	}
 
+	// 构造基础用户信息
 	usedFlow := user.InFlow + user.OutFlow
-
-	return &dto.UserPackageDto{
+	userInfo := dto.UserPackageDto{
 		User:          user.User,
 		ExpTime:       user.ExpTime,
 		Flow:          user.Flow,
@@ -179,7 +210,90 @@ func (s *UserService) GetUserPackageInfo(userID uint) (*dto.UserPackageDto, erro
 		InFlow:        user.InFlow,
 		OutFlow:       user.OutFlow,
 		Num:           user.Num,
+		UsedNum:       0, // 需要计算
 		FlowResetTime: user.FlowResetTime,
+	}
+
+	// 获取用户隧道权限
+	userTunnels, _ := s.userTunnelRepo.FindByUserID(userID)
+
+	// 获取用户转发
+	forwards, _ := s.forwardRepo.FindByUserID(int(userID))
+	userInfo.UsedNum = len(forwards)
+
+	// 获取流量统计
+	stats, _ := s.statsRepo.FindByUserID(userID)
+
+	// 获取所有隧道信息建立缓存
+	allTunnels, _ := s.tunnelRepo.FindAll()
+	tunnelMap := make(map[uint]models.Tunnel)
+	for _, t := range allTunnels {
+		tunnelMap[t.ID] = t
+	}
+
+	// 组装 TunnelPermissions
+	tunnelPermissions := make([]dto.DashboardUserTunnelDto, 0)
+	for _, ut := range userTunnels {
+		tunnelName := "未知隧道"
+		tunnelFlow := 2 // 默认双向
+		if t, ok := tunnelMap[ut.TunnelID]; ok {
+			tunnelName = t.Name
+			tunnelFlow = t.Flow
+		}
+		tunnelPermissions = append(tunnelPermissions, dto.DashboardUserTunnelDto{
+			ID:            ut.ID,
+			TunnelID:      ut.TunnelID,
+			TunnelName:    tunnelName,
+			Flow:          ut.Flow,
+			InFlow:        ut.InFlow,
+			OutFlow:       ut.OutFlow,
+			Num:           0,
+			ExpTime:       ut.ExpTime,
+			FlowResetTime: ut.FlowResetTime,
+			TunnelFlow:    tunnelFlow,
+		})
+	}
+
+	// 组装 Forwards
+	dashboardForwards := make([]dto.DashboardForwardDto, 0)
+	for _, f := range forwards {
+		tunnelName := "未知隧道"
+		inIP := ""
+		inPort := f.InPort
+		if t, ok := tunnelMap[uint(f.TunnelID)]; ok {
+			tunnelName = t.Name
+			inIP = t.InIP
+		}
+		dashboardForwards = append(dashboardForwards, dto.DashboardForwardDto{
+			ID:         f.ID,
+			Name:       f.Name,
+			TunnelID:   uint(f.TunnelID),
+			TunnelName: tunnelName,
+			InIP:       inIP,
+			InPort:     inPort,
+			RemoteAddr: f.RemoteAddr,
+			InFlow:     f.InFlow,
+			OutFlow:    f.OutFlow,
+		})
+	}
+
+	// 组装 StatisticsFlows
+	dashboardStats := make([]dto.DashboardStatisticsFlowDto, 0)
+	for _, s := range stats {
+		dashboardStats = append(dashboardStats, dto.DashboardStatisticsFlowDto{
+			ID:        s.ID,
+			UserID:    uint(s.UserID),
+			Flow:      s.Flow,
+			TotalFlow: s.TotalFlow,
+			Time:      s.Time,
+		})
+	}
+
+	return &dto.UserDashboardResponse{
+		UserInfo:          userInfo,
+		TunnelPermissions: tunnelPermissions,
+		Forwards:          dashboardForwards,
+		StatisticsFlows:   dashboardStats,
 	}, nil
 }
 

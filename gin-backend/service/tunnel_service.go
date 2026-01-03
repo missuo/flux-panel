@@ -5,20 +5,181 @@ import (
 	"flux-panel/dto"
 	"flux-panel/models"
 	"flux-panel/repository"
+	"flux-panel/websocket"
+	"time"
 
 	"gorm.io/gorm"
 )
 
+type DiagnosisResult struct {
+	NodeId      uint    `json:"nodeId"`
+	NodeName    string  `json:"nodeName"`
+	TargetIp    string  `json:"targetIp"`
+	TargetPort  int     `json:"targetPort"`
+	Description string  `json:"description"`
+	Success     bool    `json:"success"`
+	Message     string  `json:"message"`
+	AverageTime float64 `json:"averageTime"`
+	PacketLoss  float64 `json:"packetLoss"`
+	Timestamp   int64   `json:"timestamp"`
+}
+
 type TunnelService struct {
 	repo           *repository.TunnelRepository
 	userTunnelRepo *repository.UserTunnelRepository
+	nodeRepo       *repository.NodeRepository
+	forwardRepo    *repository.ForwardRepository
 }
 
 func NewTunnelService(db *gorm.DB) *TunnelService {
 	return &TunnelService{
 		repo:           repository.NewTunnelRepository(db),
 		userTunnelRepo: repository.NewUserTunnelRepository(db),
+		nodeRepo:       repository.NewNodeRepository(db),
+		forwardRepo:    repository.NewForwardRepository(db),
 	}
+}
+
+// ...
+
+// DiagnoseTunnel 诊断隧道
+func (s *TunnelService) DiagnoseTunnel(id uint) (map[string]interface{}, error) {
+	tunnel, err := s.repo.FindByID(id)
+	if err != nil {
+		return nil, errors.New("隧道不存在")
+	}
+
+	inNode, err := s.nodeRepo.FindByID(tunnel.InNodeID)
+	if err != nil {
+		return nil, errors.New("入口节点不存在")
+	}
+
+	var outNode *models.Node
+	if tunnel.Type == 2 { // 隧道转发
+		outNode, err = s.nodeRepo.FindByID(tunnel.OutNodeID)
+		if err != nil {
+			return nil, errors.New("出口节点不存在")
+		}
+	}
+
+	var results []DiagnosisResult
+
+	if tunnel.Type == 1 {
+		// 端口转发
+		inResult := s.performTcpPingDiagnosis(inNode, "www.google.com", 443, "入口->外网")
+		results = append(results, inResult)
+	} else {
+		// 隧道转发
+		outNodePort := s.getOutNodeTcpPort(tunnel.ID)
+		if outNode != nil {
+			inToOutResult := s.performTcpPingDiagnosis(inNode, outNode.ServerIP, outNodePort, "入口->出口")
+			results = append(results, inToOutResult)
+		}
+
+		if outNode != nil {
+			outToExternalResult := s.performTcpPingDiagnosis(outNode, "www.google.com", 443, "出口->外网")
+			results = append(results, outToExternalResult)
+		}
+	}
+
+	tunnelTypeStr := "隧道转发"
+	if tunnel.Type == 1 {
+		tunnelTypeStr = "端口转发"
+	}
+
+	result := map[string]interface{}{
+		"tunnelId":   tunnel.ID,
+		"tunnelName": tunnel.Name,
+		"tunnelType": tunnelTypeStr,
+		"results":    results,
+		"timestamp":  time.Now().UnixMilli(),
+	}
+
+	return result, nil
+}
+
+// getOutNodeTcpPort 获取出口节点TCP端口
+func (s *TunnelService) getOutNodeTcpPort(tunnelID uint) int {
+	forwards, err := s.forwardRepo.FindByTunnelID(tunnelID)
+	if err == nil {
+		for _, f := range forwards {
+			if f.Status == 1 {
+				return f.OutPort
+			}
+		}
+	}
+	return 22
+}
+
+// performTcpPingDiagnosis 执行 TCP Ping 诊断
+func (s *TunnelService) performTcpPingDiagnosis(node *models.Node, targetIp string, port int, description string) DiagnosisResult {
+	result := DiagnosisResult{
+		NodeId:      node.ID,
+		NodeName:    node.Name,
+		TargetIp:    targetIp,
+		TargetPort:  port,
+		Description: description,
+		Timestamp:   time.Now().UnixMilli(),
+	}
+
+	tcpPingReq := map[string]interface{}{
+		"ip":      targetIp,
+		"port":    port,
+		"count":   4,
+		"timeout": 5000,
+	}
+
+	resp, err := websocket.GetServer().SendMessage(node.ID, tcpPingReq, "TcpPing")
+	if err != nil {
+		result.Success = false
+		result.Message = err.Error()
+		result.PacketLoss = 100.0
+		result.AverageTime = -1.0
+		return result
+	}
+
+	if !resp.Success {
+		result.Success = false
+		result.Message = resp.Message
+		result.PacketLoss = 100.0
+		result.AverageTime = -1.0
+		return result
+	}
+
+	// 解析 Data
+	// resp.Data 是 interface{}，可能是 map[string]interface{}
+	// Agent 返回: {"ip": "...", "port": ..., "success": true, "averageTime": ..., "packetLoss": ...}
+
+	if dataMap, ok := resp.Data.(map[string]interface{}); ok {
+		if val, ok := dataMap["success"].(bool); ok {
+			result.Success = val
+		}
+		if val, ok := dataMap["message"].(string); ok && val != "" {
+			result.Message = val
+		} else if result.Success {
+			result.Message = "TCP连接成功"
+		} else {
+			// 尝试获取 errorMessage
+			if errMsg, ok := dataMap["errorMessage"].(string); ok {
+				result.Message = errMsg
+			} else {
+				result.Message = "TCP连接失败"
+			}
+		}
+
+		if val, ok := dataMap["averageTime"].(float64); ok {
+			result.AverageTime = val
+		}
+		if val, ok := dataMap["packetLoss"].(float64); ok {
+			result.PacketLoss = val
+		}
+	} else {
+		// 数据格式不对，但调用成功
+		result.Success = true
+		result.Message = "TCP连接成功 (数据解析失败)"
+	}
+
+	return result
 }
 
 // CreateTunnel 创建隧道
@@ -40,6 +201,7 @@ func (s *TunnelService) CreateTunnel(tunnelDto *dto.TunnelDto) error {
 	} else {
 		tunnel.TrafficRatio = 1.0
 	}
+	tunnel.Status = 1 // 默认启用
 
 	return s.repo.Create(tunnel)
 }
@@ -167,20 +329,3 @@ func (s *TunnelService) GetTunnelByID(id uint) (*models.Tunnel, error) {
 }
 
 // DiagnoseTunnel 诊断隧道
-func (s *TunnelService) DiagnoseTunnel(id uint) (map[string]interface{}, error) {
-	tunnel, err := s.repo.FindByID(id)
-	if err != nil {
-		return nil, errors.New("隧道不存在")
-	}
-
-	// TODO: 实际的隧道诊断逻辑，需要与Gost交互
-	result := map[string]interface{}{
-		"id":      tunnel.ID,
-		"name":    tunnel.Name,
-		"status":  "online",
-		"latency": 0,
-		"message": "隧道诊断功能待实现",
-	}
-
-	return result, nil
-}

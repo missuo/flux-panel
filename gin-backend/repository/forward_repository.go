@@ -44,6 +44,12 @@ func (r *ForwardRepository) Delete(id uint) error {
 	return r.db.Delete(&models.Forward{}, id).Error
 }
 
+func (r *ForwardRepository) FindByTunnelID(tunnelID uint) ([]models.Forward, error) {
+	var forwards []models.Forward
+	err := r.db.Where("tunnel_id = ?", tunnelID).Order("inx ASC").Find(&forwards).Error
+	return forwards, err
+}
+
 func (r *ForwardRepository) UpdateOrder(id uint, inx int) error {
 	return r.db.Model(&models.Forward{}).Where("id = ?", id).Update("inx", inx).Error
 }

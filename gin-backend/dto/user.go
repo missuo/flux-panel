@@ -56,3 +56,47 @@ type UserPackageDto struct {
 	UsedNum       int    `json:"usedNum"`
 	FlowResetTime int64  `json:"flowResetTime"`
 }
+
+// UserDashboardResponse 仪表盘聚合数据
+type UserDashboardResponse struct {
+	UserInfo          UserPackageDto               `json:"userInfo"`
+	TunnelPermissions []DashboardUserTunnelDto     `json:"tunnelPermissions"`
+	Forwards          []DashboardForwardDto        `json:"forwards"`
+	StatisticsFlows   []DashboardStatisticsFlowDto `json:"statisticsFlows"`
+}
+
+// DashboardUserTunnelDto 仪表盘用户隧道信息
+type DashboardUserTunnelDto struct {
+	ID            uint   `json:"id"`
+	TunnelID      uint   `json:"tunnelId"`
+	TunnelName    string `json:"tunnelName"`
+	Flow          int64  `json:"flow"`
+	InFlow        int64  `json:"inFlow"`
+	OutFlow       int64  `json:"outFlow"`
+	Num           int    `json:"num"`
+	ExpTime       int64  `json:"expTime"`
+	FlowResetTime int64  `json:"flowResetTime"`
+	TunnelFlow    int    `json:"tunnelFlow"`
+}
+
+// DashboardForwardDto 仪表盘转发信息
+type DashboardForwardDto struct {
+	ID         uint   `json:"id"`
+	Name       string `json:"name"`
+	TunnelID   uint   `json:"tunnelId"`
+	TunnelName string `json:"tunnelName"`
+	InIP       string `json:"inIp"`
+	InPort     int    `json:"inPort"`
+	RemoteAddr string `json:"remoteAddr"`
+	InFlow     int64  `json:"inFlow"`
+	OutFlow    int64  `json:"outFlow"`
+}
+
+// DashboardStatisticsFlowDto 仪表盘流量统计
+type DashboardStatisticsFlowDto struct {
+	ID        uint   `json:"id"`
+	UserID    uint   `json:"userId"`
+	Flow      int64  `json:"flow"`
+	TotalFlow int64  `json:"totalFlow"`
+	Time      string `json:"time"`
+}

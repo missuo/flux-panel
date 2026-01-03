@@ -10,12 +10,18 @@ import (
 )
 
 type ForwardService struct {
-	repo *repository.ForwardRepository
+	repo           *repository.ForwardRepository
+	tunnelRepo     *repository.TunnelRepository
+	userTunnelRepo *repository.UserTunnelRepository
+	nodeRepo       *repository.NodeRepository
 }
 
 func NewForwardService(db *gorm.DB) *ForwardService {
 	return &ForwardService{
-		repo: repository.NewForwardRepository(db),
+		repo:           repository.NewForwardRepository(db),
+		tunnelRepo:     repository.NewTunnelRepository(db),
+		userTunnelRepo: repository.NewUserTunnelRepository(db),
+		nodeRepo:       repository.NewNodeRepository(db),
 	}
 }
 
@@ -83,38 +89,86 @@ func (s *ForwardService) ForceDeleteForward(id uint) error {
 	return s.repo.Delete(id)
 }
 
-// PauseForward 暂停转发 (TODO: 实现Gost集成)
+// PauseForward 暂停转发
 func (s *ForwardService) PauseForward(id uint) error {
-	_, err := s.repo.FindByID(id)
+	forward, err := s.repo.FindByID(id)
 	if err != nil {
 		return errors.New("转发不存在")
 	}
-	// TODO: 调用Gost API暂停服务
+
+	// 更新数据库状态
+	forward.Status = 0
+	if err := s.repo.Update(forward); err != nil {
+		return err
+	}
+
+	// 调用 Gost API 暂停服务
+	userTunnel, err := s.userTunnelRepo.FindByUserAndTunnel(uint(forward.UserID), uint(forward.TunnelID))
+	if err != nil {
+		return nil // 如果找不到映射，可能已经被删除了，只需要暂停 DB 状态即可
+	}
+
+	tunnel, err := s.tunnelRepo.FindByID(uint(forward.TunnelID))
+	if err != nil {
+		return nil
+	}
+
+	serviceName := BuildServiceName(forward.ID, forward.UserID, userTunnel.ID)
+	PauseService(tunnel.InNodeID, serviceName)
+	if tunnel.Type == 2 {
+		PauseRemoteService(tunnel.OutNodeID, serviceName)
+	}
+
 	return nil
 }
 
-// ResumeForward 恢复转发 (TODO: 实现Gost集成)
+// ResumeForward 恢复转发
 func (s *ForwardService) ResumeForward(id uint) error {
-	_, err := s.repo.FindByID(id)
+	forward, err := s.repo.FindByID(id)
 	if err != nil {
 		return errors.New("转发不存在")
 	}
-	// TODO: 调用Gost API恢复服务
+
+	// 更新数据库状态
+	forward.Status = 1
+	if err := s.repo.Update(forward); err != nil {
+		return err
+	}
+
+	// 调用 Gost API 恢复服务
+	userTunnel, err := s.userTunnelRepo.FindByUserAndTunnel(uint(forward.UserID), uint(forward.TunnelID))
+	if err != nil {
+		return nil
+	}
+
+	tunnel, err := s.tunnelRepo.FindByID(uint(forward.TunnelID))
+	if err != nil {
+		return nil
+	}
+
+	serviceName := BuildServiceName(forward.ID, forward.UserID, userTunnel.ID)
+	ResumeService(tunnel.InNodeID, serviceName)
+	if tunnel.Type == 2 {
+		ResumeRemoteService(tunnel.OutNodeID, serviceName)
+	}
+
 	return nil
 }
 
-// DiagnoseForward 诊断转发 (TODO: 实现诊断逻辑)
+// DiagnoseForward 诊断转发
 func (s *ForwardService) DiagnoseForward(id uint) (map[string]interface{}, error) {
 	forward, err := s.repo.FindByID(id)
 	if err != nil {
 		return nil, errors.New("转发不存在")
 	}
 
-	// TODO: 实现真正的诊断逻辑
+	// TODO: 实现真正的诊断逻辑 (例如 TCP Ping RemoteAddr)
+	// 目前返回 Mock 数据以防前端白屏
 	result := map[string]interface{}{
 		"forwardId": forward.ID,
 		"status":    "ok",
-		"message":   "诊断功能开发中",
+		"message":   "诊断暂未实现",
+		"timestamp": 0, // Fill with current time if needed
 	}
 	return result, nil
 }
