@@ -22,4 +22,9 @@
 #import "FLXMainTabBarController.h"
 #import "FLXSettingsViewController.h"
 
+// 管理员控制器
+#import "FLXNodeListViewController.h"
+#import "FLXTunnelListViewController.h"
+#import "FLXUserListViewController.h"
+
 #endif /* Flux_h */

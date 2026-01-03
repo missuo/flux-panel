@@ -113,7 +113,7 @@
 
   // 版本标签
   self.versionLabel = [[UILabel alloc] init];
-  self.versionLabel.text = @"Flux Panel iOS v1.5.1";
+  self.versionLabel.text = @"Flux Panel iOS v1.5.2";
   self.versionLabel.font = [UIFont systemFontOfSize:12
                                              weight:UIFontWeightRegular];
   self.versionLabel.textAlignment = NSTextAlignmentCenter;
