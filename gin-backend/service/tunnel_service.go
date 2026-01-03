@@ -116,6 +116,7 @@ func (s *TunnelService) AssignUserTunnel(assignDto *dto.UserTunnelDto) error {
 		Flow:          assignDto.Flow,
 		FlowResetTime: assignDto.FlowResetTime,
 	}
+	userTunnel.Status = 1 // 默认启用
 
 	return s.userTunnelRepo.Create(userTunnel)
 }
@@ -174,11 +175,11 @@ func (s *TunnelService) DiagnoseTunnel(id uint) (map[string]interface{}, error) 
 
 	// TODO: 实际的隧道诊断逻辑，需要与Gost交互
 	result := map[string]interface{}{
-		"id":        tunnel.ID,
-		"name":      tunnel.Name,
-		"status":    "online",
-		"latency":   0,
-		"message":   "隧道诊断功能待实现",
+		"id":      tunnel.ID,
+		"name":    tunnel.Name,
+		"status":  "online",
+		"latency": 0,
+		"message": "隧道诊断功能待实现",
 	}
 
 	return result, nil

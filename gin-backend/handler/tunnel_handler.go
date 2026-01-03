@@ -224,7 +224,28 @@ func (h *TunnelHandler) DiagnoseTunnel(c *gin.Context) {
 		return
 	}
 
-	id := parseID(req["id"])
+	var id uint
+	var val interface{}
+	var ok bool
+
+	if val, ok = req["tunnelId"]; ok {
+		// Found tunnelId
+	} else if val, ok = req["id"]; ok {
+		// Found id
+	} else {
+		utils.Error(c, "参数错误")
+		return
+	}
+
+	// Parse ID
+	if v, ok := val.(float64); ok {
+		id = uint(v)
+	} else if v, ok := val.(string); ok {
+		if idUint, err := strconv.ParseUint(v, 10, 32); err == nil {
+			id = uint(idUint)
+		}
+	}
+
 	if id == 0 {
 		utils.Error(c, "参数错误")
 		return
