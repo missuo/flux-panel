@@ -125,7 +125,7 @@ func (h *NodeHandler) GetInstallCommand(c *gin.Context) {
 		return
 	}
 
-	utils.Success(c, map[string]string{"command": command})
+	utils.Success(c, command)
 }
 
 // CheckNodeStatus 检查节点状态

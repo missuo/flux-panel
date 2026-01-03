@@ -99,7 +99,7 @@ func (s *NodeService) GetInstallCommand(id uint) (string, error) {
 
 	// 生成安装命令
 	command := fmt.Sprintf(
-		"curl -fsSL https://raw.githubusercontent.com/your-repo/flux-panel/main/install.sh | bash -s -- --id=%d --secret=%s --server=%s",
+		"curl -fsSL https://raw.githubusercontent.com/missuo/flux-panel/main/install.sh | bash -s -- --id=%d --secret=%s --server=%s",
 		node.ID,
 		node.Secret,
 		node.ServerIP,

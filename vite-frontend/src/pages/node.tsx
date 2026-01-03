@@ -875,8 +875,8 @@ export default function NodePage() {
                     label="起始端口"
                     type="number"
                     placeholder="1000"
-                    value={form.portSta.toString()}
-                    onChange={(e) => setForm(prev => ({ ...prev, portSta: parseInt(e.target.value) || 1000 }))}
+                    value={form.portSta === 0 ? '' : form.portSta.toString()}
+                    onChange={(e) => setForm(prev => ({ ...prev, portSta: e.target.value === '' ? 0 : (parseInt(e.target.value) || 0) }))}
                     isInvalid={!!errors.portSta}
                     errorMessage={errors.portSta}
                     variant="bordered"
@@ -888,8 +888,8 @@ export default function NodePage() {
                     label="结束端口"
                     type="number"
                     placeholder="65535"
-                    value={form.portEnd.toString()}
-                    onChange={(e) => setForm(prev => ({ ...prev, portEnd: parseInt(e.target.value) || 65535 }))}
+                    value={form.portEnd === 0 ? '' : form.portEnd.toString()}
+                    onChange={(e) => setForm(prev => ({ ...prev, portEnd: e.target.value === '' ? 0 : (parseInt(e.target.value) || 0) }))}
                     isInvalid={!!errors.portEnd}
                     errorMessage={errors.portEnd}
                     variant="bordered"
