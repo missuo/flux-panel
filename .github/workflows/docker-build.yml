@@ -31,7 +31,7 @@ jobs:
         id: meta
         uses: docker/metadata-action@v4
         with:
-          images: ${{ env.REGISTRY }}/${{ github.repository_owner }}/vite-frontend
+          images: ${{ env.REGISTRY }}/${{ github.repository_owner }}/flux-panel-frontend
           tags: |
             type=ref,event=tag
             type=raw,value=latest
@@ -70,7 +70,7 @@ jobs:
         id: meta
         uses: docker/metadata-action@v4
         with:
-          images: ${{ env.REGISTRY }}/${{ github.repository_owner }}/gin-backend
+          images: ${{ env.REGISTRY }}/${{ github.repository_owner }}/flux-panel-backend
           tags: |
             type=ref,event=tag
             type=raw,value=latest
