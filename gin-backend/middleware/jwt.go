@@ -45,9 +45,9 @@ func RequireRole() gin.HandlerFunc {
 			return
 		}
 
-		// 检查是否为管理员 (roleId == 1)
-		if roleID.(int) != 1 {
-			utils.Unauthorized(c, "无权限访问")
+		// 检查是否为管理员 (role_id == 0 表示管理员)
+		if roleID.(int) != 0 {
+			utils.Forbidden(c, "权限不足，仅管理员可操作")
 			return
 		}
 

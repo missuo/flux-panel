@@ -29,7 +29,7 @@ func (h *ForwardHandler) CreateForward(c *gin.Context) {
 	}
 
 	userID, _ := c.Get("user_id")
-	userName, _ := c.Get("user_name")
+	userName, _ := c.Get("user")
 
 	userIDInt := userID.(int)
 	userNameStr := ""

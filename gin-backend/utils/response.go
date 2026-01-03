@@ -62,3 +62,13 @@ func Unauthorized(c *gin.Context, msg string) {
 	})
 	c.Abort()
 }
+
+// Forbidden 权限不足响应
+func Forbidden(c *gin.Context, msg string) {
+	c.JSON(http.StatusOK, Response{
+		Code: 403,
+		Msg:  msg,
+		Ts:   time.Now().UnixMilli(),
+	})
+	c.Abort()
+}

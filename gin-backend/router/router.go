@@ -168,9 +168,9 @@ func SetupRouter() *gin.Engine {
 		flow.Any("/upload", flowHandler.Upload)
 	}
 
-	// WebSocket 节点连接
+	// WebSocket 节点连接 (路径匹配 Spring Boot 后端)
 	wsHandler := websocket.NewHandler(models.DB)
-	r.GET("/ws", wsHandler.HandleConnection)
+	r.GET("/system-info", wsHandler.HandleConnection)
 
 	// 健康检查
 	r.GET("/health", func(c *gin.Context) {
