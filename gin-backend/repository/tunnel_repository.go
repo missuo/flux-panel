@@ -20,13 +20,13 @@ func (r *TunnelRepository) Create(tunnel *models.Tunnel) error {
 
 func (r *TunnelRepository) FindByID(id uint) (*models.Tunnel, error) {
 	var tunnel models.Tunnel
-	err := r.db.Where("id = ? AND status = 0", id).First(&tunnel).Error
+	err := r.db.Where("id = ?", id).First(&tunnel).Error
 	return &tunnel, err
 }
 
 func (r *TunnelRepository) FindAll() ([]models.Tunnel, error) {
 	var tunnels []models.Tunnel
-	err := r.db.Where("status = 0").Find(&tunnels).Error
+	err := r.db.Find(&tunnels).Error
 	return tunnels, err
 }
 
@@ -35,13 +35,13 @@ func (r *TunnelRepository) Update(tunnel *models.Tunnel) error {
 }
 
 func (r *TunnelRepository) Delete(id uint) error {
-	return r.db.Model(&models.Tunnel{}).Where("id = ?", id).Update("status", 1).Error
+	return r.db.Delete(&models.Tunnel{}, id).Error
 }
 
 func (r *TunnelRepository) FindByUserID(userID uint) ([]models.Tunnel, error) {
 	var tunnels []models.Tunnel
 	err := r.db.Joins("JOIN user_tunnel ON user_tunnel.tunnel_id = tunnel.id").
-		Where("user_tunnel.user_id = ? AND tunnel.status = 0", userID).
+		Where("user_tunnel.user_id = ?", userID).
 		Find(&tunnels).Error
 	return tunnels, err
 }

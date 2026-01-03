@@ -20,7 +20,7 @@ func (r *NodeRepository) Create(node *models.Node) error {
 
 func (r *NodeRepository) FindByID(id uint) (*models.Node, error) {
 	var node models.Node
-	err := r.db.Where("id = ? AND status = 0", id).First(&node).Error
+	err := r.db.Where("id = ?", id).First(&node).Error
 	return &node, err
 }
 
