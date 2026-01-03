@@ -1,12 +1,14 @@
 package service
 
 import (
+	"crypto/rand"
 	"errors"
 	"flux-panel/dto"
 	"flux-panel/models"
 	"flux-panel/repository"
 	"flux-panel/websocket"
 	"fmt"
+	"math/big"
 	"net"
 	"strconv"
 	"strings"
@@ -156,16 +158,17 @@ func (s *ForwardService) allocatePorts(tunnel *models.Tunnel) (int, int, error) 
 	}
 
 	usedInPorts := s.getAllUsedPorts(tunnel.InNodeID)
-	inPort := 0
+	var availableInPorts []int
 	for p := inNode.PortSta; p <= inNode.PortEnd; p++ {
 		if !usedInPorts[p] {
-			inPort = p
-			break
+			availableInPorts = append(availableInPorts, p)
 		}
 	}
-	if inPort == 0 {
+
+	if len(availableInPorts) == 0 {
 		return 0, 0, errors.New("入口节点无可用端口")
 	}
+	inPort := s.getRandomPort(availableInPorts)
 
 	// 2. 分配出口端口 (仅隧道转发)
 	outPort := 0
@@ -176,18 +179,28 @@ func (s *ForwardService) allocatePorts(tunnel *models.Tunnel) (int, int, error) 
 		}
 
 		usedOutPorts := s.getAllUsedPorts(tunnel.OutNodeID)
+		var availableOutPorts []int
 		for p := outNode.PortSta; p <= outNode.PortEnd; p++ {
 			if !usedOutPorts[p] {
-				outPort = p
-				break
+				availableOutPorts = append(availableOutPorts, p)
 			}
 		}
-		if outPort == 0 {
+
+		if len(availableOutPorts) == 0 {
 			return 0, 0, errors.New("出口节点无可用端口")
 		}
+		outPort = s.getRandomPort(availableOutPorts)
 	}
 
 	return inPort, outPort, nil
+}
+
+func (s *ForwardService) getRandomPort(ports []int) int {
+	if len(ports) == 0 {
+		return 0
+	}
+	n, _ := rand.Int(rand.Reader, big.NewInt(int64(len(ports))))
+	return ports[n.Int64()]
 }
 
 // getAllUsedPorts 获取节点已用端口
