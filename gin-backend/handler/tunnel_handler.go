@@ -184,6 +184,17 @@ func (h *TunnelHandler) GetUserTunnels(c *gin.Context) {
 		return
 	}
 
+	roleID, roleExists := c.Get("role_id")
+	if roleExists && roleID.(int) == 0 {
+		tunnels, err := h.service.GetAllTunnels()
+		if err != nil {
+			utils.Error(c, err.Error())
+			return
+		}
+		utils.Success(c, tunnels)
+		return
+	}
+
 	tunnels, err := h.service.GetUserTunnels(uint(userID.(int)))
 	if err != nil {
 		utils.Error(c, err.Error())
