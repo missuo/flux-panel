@@ -25,6 +25,7 @@
 // 管理员控制器
 #import "FLXNodeListViewController.h"
 #import "FLXTunnelListViewController.h"
+#import "FLXUserEditViewController.h"
 #import "FLXUserListViewController.h"
 
 #endif /* Flux_h */

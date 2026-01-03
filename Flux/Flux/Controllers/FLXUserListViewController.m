@@ -8,6 +8,7 @@
 #import "FLXUserListViewController.h"
 #import "FLXAPIClient.h"
 #import "FLXModels.h"
+#import "FLXUserEditViewController.h"
 
 @interface FLXUserListViewController () <UITableViewDelegate,
                                          UITableViewDataSource>
@@ -136,7 +137,13 @@
 }
 
 - (void)addButtonTapped {
-  [self showAlertWithTitle:@"提示" message:@"请使用网页版添加用户"];
+  FLXUserEditViewController *editVC = [[FLXUserEditViewController alloc] init];
+  editVC.completionHandler = ^{
+    [self loadData];
+  };
+  UINavigationController *navVC =
+      [[UINavigationController alloc] initWithRootViewController:editVC];
+  [self presentViewController:navVC animated:YES completion:nil];
 }
 
 - (void)showAlertWithTitle:(NSString *)title message:(NSString *)message {
@@ -252,6 +259,12 @@
                                           }]];
 
   if (!user.isAdmin) {
+    [alert addAction:[UIAlertAction actionWithTitle:@"编辑用户"
+                                              style:UIAlertActionStyleDefault
+                                            handler:^(UIAlertAction *action) {
+                                              [self editUser:user];
+                                            }]];
+
     [alert addAction:[UIAlertAction actionWithTitle:@"重置流量"
                                               style:UIAlertActionStyleDefault
                                             handler:^(UIAlertAction *action) {
@@ -292,6 +305,17 @@
   [details appendFormat:@"流量重置日: 每月%ld日", (long)user.flowResetTime];
 
   [self showAlertWithTitle:@"用户详情" message:details];
+}
+
+- (void)editUser:(FLXUser *)user {
+  FLXUserEditViewController *editVC =
+      [[FLXUserEditViewController alloc] initWithUser:user];
+  editVC.completionHandler = ^{
+    [self loadData];
+  };
+  UINavigationController *navVC =
+      [[UINavigationController alloc] initWithRootViewController:editVC];
+  [self presentViewController:navVC animated:YES completion:nil];
 }
 
 - (void)resetFlowForUser:(FLXUser *)user {
