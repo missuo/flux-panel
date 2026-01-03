@@ -223,12 +223,54 @@ func (s *ForwardService) getAllUsedPorts(nodeID uint) map[int]bool {
 
 // GetAllForwards 获取所有转发
 func (s *ForwardService) GetAllForwards() ([]models.Forward, error) {
-	return s.repo.FindAll()
+	forwards, err := s.repo.FindAll()
+	if err != nil {
+		return nil, err
+	}
+	return s.populateForwardDetails(forwards)
 }
 
 // GetForwardsByUserID 获取用户的转发
 func (s *ForwardService) GetForwardsByUserID(userID int) ([]models.Forward, error) {
-	return s.repo.FindByUserID(userID)
+	forwards, err := s.repo.FindByUserID(userID)
+	if err != nil {
+		return nil, err
+	}
+	return s.populateForwardDetails(forwards)
+}
+
+// populateForwardDetails 填充转发详情(TunnelName, InIP)
+func (s *ForwardService) populateForwardDetails(forwards []models.Forward) ([]models.Forward, error) {
+	tunnels, err := s.tunnelRepo.FindAll()
+	if err != nil {
+		return forwards, nil
+	}
+
+	tunnelMap := make(map[uint]models.Tunnel)
+	for _, t := range tunnels {
+		tunnelMap[t.ID] = t
+	}
+
+	nodes, err := s.nodeRepo.FindAll()
+	if err != nil {
+		return forwards, nil
+	}
+
+	nodeMap := make(map[uint]models.Node)
+	for _, n := range nodes {
+		nodeMap[n.ID] = n
+	}
+
+	for i := range forwards {
+		if tunnel, ok := tunnelMap[uint(forwards[i].TunnelID)]; ok {
+			forwards[i].TunnelName = tunnel.Name
+			if node, ok := nodeMap[tunnel.InNodeID]; ok {
+				forwards[i].InIP = node.ServerIP
+			}
+		}
+	}
+
+	return forwards, nil
 }
 
 // UpdateForward 更新转发

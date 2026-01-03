@@ -15,6 +15,8 @@ type Forward struct {
 	InFlow        int64  `gorm:"column:in_flow;default:0" json:"inFlow"`
 	OutFlow       int64  `gorm:"column:out_flow;default:0" json:"outFlow"`
 	Inx           int    `gorm:"column:inx" json:"inx"`
+	TunnelName    string `gorm:"-" json:"tunnelName"`
+	InIP          string `gorm:"-" json:"inIp"`
 }
 
 // TableName 指定表名
