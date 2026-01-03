@@ -151,6 +151,7 @@ func SetupRouter() *gin.Engine {
 			captcha.POST("/check", captchaHandler.Check)
 			captcha.POST("/generate", captchaHandler.Generate)
 			captcha.POST("/verify", captchaHandler.Verify)
+			captcha.POST("/verify-turnstile", captchaHandler.VerifyTurnstile)
 		}
 
 		// OpenAPI相关路由

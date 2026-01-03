@@ -192,7 +192,7 @@
 - (void)configureAboutCell:(UITableViewCell *)cell atRow:(NSInteger)row {
   if (row == 0) {
     cell.textLabel.text = @"版本";
-    cell.detailTextLabel.text = @"1.5.2";
+    cell.detailTextLabel.text = @"1.5.3";
     cell.selectionStyle = UITableViewCellSelectionStyleNone;
   } else if (row == 1) {
     cell.textLabel.text = @"开源项目";

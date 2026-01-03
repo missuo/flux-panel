@@ -1,9 +1,14 @@
 package handler
 
 import (
+	"encoding/json"
 	"flux-panel/service"
 	"flux-panel/utils"
+	"fmt"
 	"image/color"
+	"io"
+	"net/http"
+	"net/url"
 	"sync"
 	"time"
 
@@ -60,14 +65,46 @@ func newSliderDriver() *base64Captcha.DriverString {
 	}
 }
 
-// Check 检查是否启用验证码
+// Check 检查是否启用验证码，返回验证码类型和配置
 func (h *CaptchaHandler) Check(c *gin.Context) {
 	config, err := h.configService.GetConfigByName("captcha_enabled")
 	if err != nil || config.Value != "true" {
 		utils.Success(c, 0)
 		return
 	}
-	utils.Success(c, 1)
+
+	// 获取验证码类型
+	captchaType := "RANDOM"
+	typeConfig, err := h.configService.GetConfigByName("captcha_type")
+	if err == nil && typeConfig.Value != "" {
+		captchaType = typeConfig.Value
+	}
+
+	// 如果是 Turnstile，返回 site key
+	if captchaType == "TURNSTILE" {
+		siteKeyConfig, err := h.configService.GetConfigByName("turnstile_site_key")
+		if err != nil || siteKeyConfig.Value == "" {
+			// 如果没有配置 site key，回退到默认验证码
+			utils.Success(c, gin.H{
+				"enabled": 1,
+				"type":    "RANDOM",
+			})
+			return
+		}
+
+		utils.Success(c, gin.H{
+			"enabled":            1,
+			"type":               captchaType,
+			"turnstile_site_key": siteKeyConfig.Value,
+		})
+		return
+	}
+
+	// 其他验证码类型
+	utils.Success(c, gin.H{
+		"enabled": 1,
+		"type":    captchaType,
+	})
 }
 
 // Generate 生成验证码
@@ -211,4 +248,76 @@ func cleanupExpiredTokens() {
 		}
 		captchaMutex.Unlock()
 	}
+}
+
+// TurnstileRequest Turnstile 验证请求
+type TurnstileRequest struct {
+	Token string `json:"token"`
+}
+
+// TurnstileResponse Cloudflare Turnstile API 响应
+type TurnstileResponse struct {
+	Success     bool     `json:"success"`
+	ChallengeTs string   `json:"challenge_ts"`
+	Hostname    string   `json:"hostname"`
+	ErrorCodes  []string `json:"error-codes"`
+}
+
+// VerifyTurnstile 验证 Cloudflare Turnstile token
+func (h *CaptchaHandler) VerifyTurnstile(c *gin.Context) {
+	var req TurnstileRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		utils.Error(c, "参数错误")
+		return
+	}
+
+	if req.Token == "" {
+		utils.Error(c, "缺少 token")
+		return
+	}
+
+	// 获取 secret key
+	secretKeyConfig, err := h.configService.GetConfigByName("turnstile_secret_key")
+	if err != nil || secretKeyConfig.Value == "" {
+		utils.Error(c, "Turnstile 配置错误")
+		return
+	}
+
+	// 调用 Cloudflare Turnstile API 验证 token
+	formData := url.Values{}
+	formData.Set("secret", secretKeyConfig.Value)
+	formData.Set("response", req.Token)
+	formData.Set("remoteip", c.ClientIP())
+
+	resp, err := http.PostForm("https://challenges.cloudflare.com/turnstile/v0/siteverify", formData)
+	if err != nil {
+		utils.Error(c, "验证失败，请重试")
+		return
+	}
+	defer resp.Body.Close()
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		utils.Error(c, "验证失败，请重试")
+		return
+	}
+
+	var turnstileResp TurnstileResponse
+	if err := json.Unmarshal(body, &turnstileResp); err != nil {
+		utils.Error(c, "验证失败，请重试")
+		return
+	}
+
+	if !turnstileResp.Success {
+		utils.Error(c, fmt.Sprintf("人机验证失败: %v", turnstileResp.ErrorCodes))
+		return
+	}
+
+	// 验证成功，生成一个临时 token 用于登录
+	validToken := fmt.Sprintf("turnstile_%d", time.Now().UnixNano())
+	storeValidToken(validToken)
+
+	utils.Success(c, gin.H{
+		"validToken": validToken,
+	})
 }

@@ -96,8 +96,31 @@ const CONFIG_ITEMS: ConfigItem[] = [
         label: '拼图验证码', 
         value: 'CONCAT', 
         description: '拖动滑块完成图片拼接' 
+      },
+      { 
+        label: 'Cloudflare Turnstile', 
+        value: 'TURNSTILE', 
+        description: '使用 Cloudflare Turnstile 进行人机验证' 
       }
     ]
+  },
+  {
+    key: 'turnstile_site_key',
+    label: 'Turnstile Site Key',
+    placeholder: '请输入 Cloudflare Turnstile Site Key',
+    description: '从 Cloudflare Dashboard 获取的 Site Key（公钥），用于前端 widget',
+    type: 'input',
+    dependsOn: 'captcha_type',
+    dependsValue: 'TURNSTILE'
+  },
+  {
+    key: 'turnstile_secret_key',
+    label: 'Turnstile Secret Key',
+    placeholder: '请输入 Cloudflare Turnstile Secret Key',
+    description: '从 Cloudflare Dashboard 获取的 Secret Key（私钥），用于后端验证，请妥善保管',
+    type: 'input',
+    dependsOn: 'captcha_type',
+    dependsValue: 'TURNSTILE'
   }
 ];
 
@@ -105,7 +128,7 @@ const CONFIG_ITEMS: ConfigItem[] = [
 const getInitialConfigs = (): Record<string, string> => {
   if (typeof window === 'undefined') return {};
   
-  const configKeys = ['app_name', 'captcha_enabled', 'captcha_type', 'ip'];
+  const configKeys = ['app_name', 'captcha_enabled', 'captcha_type', 'ip', 'turnstile_site_key', 'turnstile_secret_key'];
   const initialConfigs: Record<string, string> = {};
   
   try {

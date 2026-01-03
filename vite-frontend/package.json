@@ -1,7 +1,7 @@
 {
   "name": "flux-panel",
   "private": true,
-  "version": "1.5.2",
+  "version": "1.5.3",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -41,6 +41,7 @@
     "@heroui/table": "^2.2.24",
     "@heroui/theme": "^2.4.24",
     "@heroui/use-theme": "^2.1.10",
+    "@marsidev/react-turnstile": "^1.4.1",
     "@nextui-org/system": "^2.4.6",
     "@react-aria/visually-hidden": "3.8.25",
     "@react-types/shared": "3.30.0",
