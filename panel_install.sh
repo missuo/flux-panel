@@ -8,28 +8,19 @@ export LC_ALL=C
 
 
 # 全局下载地址配置
-DOCKER_COMPOSEV4_URL="https://github.com/bqlpfy/flux-panel/releases/download/1.4.3/docker-compose-v4.yml"
-DOCKER_COMPOSEV6_URL="https://github.com/bqlpfy/flux-panel/releases/download/1.4.3/docker-compose-v6.yml"
-GOST_SQL_URL="https://github.com/bqlpfy/flux-panel/releases/download/1.4.3/gost.sql"
+DOCKER_COMPOSE_URL="https://github.com/missuo/flux-panel/releases/download/v1.5.1/compose.yaml"
+GOST_SQL_URL="https://github.com/missuo/flux-panel/releases/download/v1.5.1/gost.sql"
 
 COUNTRY=$(curl -s https://ipinfo.io/country)
 if [ "$COUNTRY" = "CN" ]; then
     # 拼接 URL
-    DOCKER_COMPOSEV4_URL="https://ghfast.top/${DOCKER_COMPOSEV4_URL}"
-    DOCKER_COMPOSEV6_URL="https://ghfast.top/${DOCKER_COMPOSEV6_URL}"
+    DOCKER_COMPOSE_URL="https://ghfast.top/${DOCKER_COMPOSE_URL}"
     GOST_SQL_URL="https://ghfast.top/${GOST_SQL_URL}"
 fi
 
 
 
-# 根据IPv6支持情况选择docker-compose URL
-get_docker_compose_url() {
-  if check_ipv6_support > /dev/null 2>&1; then
-    echo "$DOCKER_COMPOSEV6_URL"
-  else
-    echo "$DOCKER_COMPOSEV4_URL"
-  fi
-}
+
 
 # 检查 docker-compose 或 docker compose 命令
 check_docker() {
@@ -194,9 +185,9 @@ install_panel() {
   get_config_params
 
   echo "🔽 下载必要文件..."
-  DOCKER_COMPOSE_URL=$(get_docker_compose_url)
-  echo "📡 选择配置文件：$(basename "$DOCKER_COMPOSE_URL")"
-  curl -L -o docker-compose.yml "$DOCKER_COMPOSE_URL"
+  echo "🔽 下载必要文件..."
+  echo "📡 选择配置文件：compose.yaml"
+  curl -L -o compose.yaml "$DOCKER_COMPOSE_URL"
 
   # 检查 gost.sql 是否已存在
   if [[ -f "gost.sql" ]]; then
@@ -241,9 +232,9 @@ update_panel() {
   check_docker
 
   echo "🔽 下载最新配置文件..."
-  DOCKER_COMPOSE_URL=$(get_docker_compose_url)
-  echo "📡 选择配置文件：$(basename "$DOCKER_COMPOSE_URL")"
-  curl -L -o docker-compose.yml "$DOCKER_COMPOSE_URL"
+  echo "🔽 下载最新配置文件..."
+  echo "📡 选择配置文件：compose.yaml"
+  curl -L -o compose.yaml "$DOCKER_COMPOSE_URL"
   echo "✅ 下载完成"
 
   # 自动检测并配置 IPv6 支持
@@ -1051,12 +1042,11 @@ uninstall_panel() {
   echo "🗑️ 开始卸载面板..."
   check_docker
 
-  if [[ ! -f "docker-compose.yml" ]]; then
-    echo "⚠️ 未找到 docker-compose.yml 文件，正在下载以完成卸载..."
-    DOCKER_COMPOSE_URL=$(get_docker_compose_url)
-    echo "📡 选择配置文件：$(basename "$DOCKER_COMPOSE_URL")"
-    curl -L -o docker-compose.yml "$DOCKER_COMPOSE_URL"
-    echo "✅ docker-compose.yml 下载完成"
+  if [[ ! -f "compose.yaml" ]]; then
+    echo "⚠️ 未找到 compose.yaml 文件，正在下载以完成卸载..."
+    echo "📡 选择配置文件：compose.yaml"
+    curl -L -o compose.yaml "$DOCKER_COMPOSE_URL"
+    echo "✅ compose.yaml 下载完成"
   fi
 
   read -p "确认卸载面板吗？此操作将停止并删除所有容器和数据 (y/N): " confirm
@@ -1068,7 +1058,7 @@ uninstall_panel() {
   echo "🛑 停止并删除容器、镜像、卷..."
   $DOCKER_CMD down --rmi all --volumes --remove-orphans
   echo "🧹 删除配置文件..."
-  rm -f docker-compose.yml gost.sql .env
+  rm -f compose.yaml gost.sql .env
   echo "✅ 卸载完成"
 }
 
