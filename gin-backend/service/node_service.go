@@ -6,25 +6,32 @@ import (
 	"flux-panel/models"
 	"flux-panel/repository"
 	"fmt"
+	"strings"
 
+	"github.com/google/uuid"
 	"gorm.io/gorm"
 )
 
 type NodeService struct {
-	repo *repository.NodeRepository
+	repo          *repository.NodeRepository
+	configService *ConfigService
 }
 
 func NewNodeService(db *gorm.DB) *NodeService {
 	return &NodeService{
-		repo: repository.NewNodeRepository(db),
+		repo:          repository.NewNodeRepository(db),
+		configService: NewConfigService(db),
 	}
 }
 
 // CreateNode 创建节点
 func (s *NodeService) CreateNode(nodeDto *dto.NodeDto) error {
+	// 自动生成 Secret（UUID 去掉横线）
+	secret := strings.ReplaceAll(uuid.New().String(), "-", "")
+
 	node := &models.Node{
 		Name:     nodeDto.Name,
-		Secret:   nodeDto.Secret,
+		Secret:   secret,
 		IP:       nodeDto.IP,
 		ServerIP: nodeDto.ServerIP,
 		Version:  nodeDto.Version,
@@ -97,15 +104,67 @@ func (s *NodeService) GetInstallCommand(id uint) (string, error) {
 		return "", errors.New("节点不存在")
 	}
 
-	// 生成安装命令
+	// 从配置表获取面板 IP
+	config, err := s.configService.GetConfigByName("ip")
+	if err != nil {
+		return "", errors.New("请先前往网站配置中设置ip")
+	}
+
+	panelAddr := config.Value
+	if panelAddr == "" {
+		return "", errors.New("请先前往网站配置中设置ip")
+	}
+
+	// 处理 IPv6 地址
+	processedAddr := processServerAddress(panelAddr)
+
+	// 生成安装命令（与 Spring Boot 保持一致）
 	command := fmt.Sprintf(
-		"curl -fsSL https://raw.githubusercontent.com/missuo/flux-panel/main/install.sh | bash -s -- --id=%d --secret=%s --server=%s",
-		node.ID,
+		"curl -L https://github.com/missuo/flux-panel/releases/download/v1.5.0/install.sh -o ./install.sh && chmod +x ./install.sh && ./install.sh -a %s -s %s",
+		processedAddr,
 		node.Secret,
-		node.ServerIP,
 	)
 
 	return command, nil
+}
+
+// processServerAddress 处理服务器地址，确保 IPv6 地址被方括号包裹
+func processServerAddress(serverAddr string) string {
+	if serverAddr == "" {
+		return serverAddr
+	}
+
+	// 如果已经被方括号包裹，直接返回
+	if strings.HasPrefix(serverAddr, "[") {
+		return serverAddr
+	}
+
+	// 查找最后一个冒号，分离主机和端口
+	lastColonIndex := strings.LastIndex(serverAddr, ":")
+	if lastColonIndex == -1 {
+		// 没有端口号，直接检查是否需要包裹
+		if isIPv6Address(serverAddr) {
+			return "[" + serverAddr + "]"
+		}
+		return serverAddr
+	}
+
+	host := serverAddr[:lastColonIndex]
+	port := serverAddr[lastColonIndex:]
+
+	// 检查主机部分是否为 IPv6 地址
+	if isIPv6Address(host) {
+		return "[" + host + "]" + port
+	}
+
+	return serverAddr
+}
+
+// isIPv6Address 判断是否为 IPv6 地址
+func isIPv6Address(address string) bool {
+	// IPv6 地址包含多个冒号，至少 2 个
+	colonCount := strings.Count(address, ":")
+	return colonCount >= 2
 }
 
 // CheckNodeStatus 检查节点状态

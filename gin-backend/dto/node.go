@@ -5,10 +5,10 @@ type NodeDto struct {
 	Name     string `json:"name" binding:"required"`
 	Secret   string `json:"secret"`
 	IP       string `json:"ip"`
-	ServerIP string `json:"server_ip"`
+	ServerIP string `json:"serverIp"`
 	Version  string `json:"version"`
-	PortSta  int    `json:"port_sta"`
-	PortEnd  int    `json:"port_end"`
+	PortSta  int    `json:"portSta"`
+	PortEnd  int    `json:"portEnd"`
 	HTTP     int    `json:"http"`
 	TLS      int    `json:"tls"`
 	Socks    int    `json:"socks"`
@@ -20,10 +20,10 @@ type NodeUpdateDto struct {
 	Name     *string `json:"name"`
 	Secret   *string `json:"secret"`
 	IP       *string `json:"ip"`
-	ServerIP *string `json:"server_ip"`
+	ServerIP *string `json:"serverIp"`
 	Version  *string `json:"version"`
-	PortSta  *int    `json:"port_sta"`
-	PortEnd  *int    `json:"port_end"`
+	PortSta  *int    `json:"portSta"`
+	PortEnd  *int    `json:"portEnd"`
 	HTTP     *int    `json:"http"`
 	TLS      *int    `json:"tls"`
 	Socks    *int    `json:"socks"`

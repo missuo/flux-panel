@@ -47,12 +47,12 @@ type ResetFlowDto struct {
 // UserPackageDto 用户套餐信息响应
 type UserPackageDto struct {
 	User          string `json:"user"`
-	ExpTime       int64  `json:"exp_time"`
+	ExpTime       int64  `json:"expTime"`
 	Flow          int64  `json:"flow"`
-	UsedFlow      int64  `json:"used_flow"`
-	InFlow        int64  `json:"in_flow"`
-	OutFlow       int64  `json:"out_flow"`
+	UsedFlow      int64  `json:"usedFlow"`
+	InFlow        int64  `json:"inFlow"`
+	OutFlow       int64  `json:"outFlow"`
 	Num           int    `json:"num"`
-	UsedNum       int    `json:"used_num"`
-	FlowResetTime int64  `json:"flow_reset_time"`
+	UsedNum       int    `json:"usedNum"`
+	FlowResetTime int64  `json:"flowResetTime"`
 }
