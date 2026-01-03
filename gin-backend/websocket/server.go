@@ -32,7 +32,7 @@ const (
 type Message struct {
 	Type string      `json:"type"`
 	Data interface{} `json:"data"`
-	ID   string      `json:"id,omitempty"`
+	ID   string      `json:"requestId,omitempty"`
 }
 
 // Response 响应结构
@@ -303,7 +303,7 @@ func (nc *NodeConnection) readPump() {
 
 		// 尝试解析为响应格式
 		var resp struct {
-			ID      string      `json:"id"`
+			ID      string      `json:"requestId"`
 			Success bool        `json:"success"`
 			Message string      `json:"message"`
 			Data    interface{} `json:"data"`
