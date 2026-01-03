@@ -296,9 +296,11 @@ func (nc *NodeConnection) readPump() {
 				}
 			}
 
-			nc.mutex.Lock()
-			nc.Conn.WriteMessage(websocket.TextMessage, ackBytes)
-			nc.mutex.Unlock()
+			select {
+			case nc.Send <- ackBytes:
+			default:
+				log.Printf("节点 %d 发送通道已满，丢弃 ACK", nc.NodeID)
+			}
 		}
 
 		// 尝试解析为响应格式
