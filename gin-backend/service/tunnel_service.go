@@ -201,7 +201,7 @@ func (s *TunnelService) CreateTunnel(tunnelDto *dto.TunnelDto) error {
 	} else {
 		tunnel.TrafficRatio = 1.0
 	}
-	tunnel.Status = 1 // 默认启用
+	tunnel.Status = 0 // 默认启用 (0: 正常, 1: 删除)
 
 	return s.repo.Create(tunnel)
 }
@@ -278,7 +278,7 @@ func (s *TunnelService) AssignUserTunnel(assignDto *dto.UserTunnelDto) error {
 		Flow:          assignDto.Flow,
 		FlowResetTime: assignDto.FlowResetTime,
 	}
-	userTunnel.Status = 1 // 默认启用
+	userTunnel.Status = 0 // 默认启用
 
 	return s.userTunnelRepo.Create(userTunnel)
 }

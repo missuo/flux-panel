@@ -41,7 +41,7 @@ func (r *UserRepository) Update(user *models.User) error {
 }
 
 func (r *UserRepository) Delete(id uint) error {
-	return r.db.Model(&models.User{}).Where("id = ?", id).Update("status", 1).Error
+	return r.db.Model(&models.User{}).Where("id = ?", id).Update("status", 0).Error
 }
 
 func (r *UserRepository) ResetFlow(id uint) error {
