@@ -420,7 +420,7 @@ func (s *ForwardService) DiagnoseForward(id uint) (map[string]interface{}, error
 		}
 
 		// 入口->出口
-		results = append(results, s.performTcpPingDiagnosis(inNode, outNode.ServerIP, forward.OutPort, "入口->出口"))
+		results = append(results, s.performTcpPingDiagnosis(inNode, outNode.ServerIP, 22, "入口->出口"))
 
 		// 出口->目标
 		for _, addr := range addrs {
