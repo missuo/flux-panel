@@ -4,42 +4,18 @@ import { Card, CardBody, CardHeader } from "@heroui/card";
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import toast from 'react-hot-toast';
-import axios from 'axios';
 import { Turnstile } from '@marsidev/react-turnstile';
 import { isWebViewFunc } from '@/utils/panel';
 import { siteConfig } from '@/config/site';
 import { title } from "@/components/primitives";
 import DefaultLayout from "@/layouts/default";
 import { login, LoginData, checkCaptcha, verifyTurnstile } from "@/api";
-import "@/utils/tac.css";
-import "@/utils/tac.min.js";
-import bgImage from "@/images/bg.jpg";
 
 
 interface LoginForm {
   username: string;
   password: string;
   captchaId: string;
-}
-
-
-
-interface CaptchaConfig {
-  requestCaptchaDataUrl: string;
-  validCaptchaUrl: string;
-  bindEl: string;
-  validSuccess: (res: any, captcha: any, tac: any) => void;
-  validFail?: (res: any, captcha: any, tac: any) => void;
-  btnCloseFun?: (event: any, tac: any) => void;
-  btnRefreshFun?: (event: any, tac: any) => void;
-}
-
-interface CaptchaStyle {
-  btnUrl?: string;
-  bgUrl?: string;
-  logoUrl?: string | null;
-  moveTrackMaskBgColor?: string;
-  moveTrackMaskBorderColor?: string;
 }
 
 export default function IndexPage() {
@@ -51,26 +27,16 @@ export default function IndexPage() {
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState<Partial<LoginForm>>({});
   const [showCaptcha, setShowCaptcha] = useState(false);
-  const [captchaType, setCaptchaType] = useState<string>(''); // 验证码类型
   const [turnstileSiteKey, setTurnstileSiteKey] = useState<string>(''); // Turnstile Site Key
   const navigate = useNavigate();
-  const tacInstanceRef = useRef<any>(null);
-  const captchaContainerRef = useRef<HTMLDivElement>(null);
   const turnstileRef = useRef<any>(null);
   const [isWebView, setIsWebView] = useState(false);
-  // 清理验证码实例
-  useEffect(() => {
-    return () => {
-      if (tacInstanceRef.current) {
-        tacInstanceRef.current.destroyWindow();
-        tacInstanceRef.current = null;
-      }
-    };
-  }, []);
+
   // 检测是否在WebView中运行
   useEffect(() => {
     setIsWebView(isWebViewFunc());
   }, []);
+
   // 验证表单
   const validateForm = (): boolean => {
     const newErrors: Partial<LoginForm> = {};
@@ -96,74 +62,6 @@ export default function IndexPage() {
     // 清除该字段的错误
     if (errors[field]) {
       setErrors(prev => ({ ...prev, [field]: undefined }));
-    }
-  };
-
-  // 初始化验证码
-  const initCaptcha = async () => {
-    if (!window.TAC || !captchaContainerRef.current) {
-      return;
-    }
-
-    try {
-      // 清理之前的验证码实例
-      if (tacInstanceRef.current) {
-        tacInstanceRef.current.destroyWindow();
-        tacInstanceRef.current = null;
-      }
-
-      // 使用axios的baseURL，确保在WebView中使用正确的面板地址
-      const baseURL = axios.defaults.baseURL || (import.meta.env.VITE_API_BASE ? `${import.meta.env.VITE_API_BASE}/api/v1/` : '/api/v1/');
-      
-      const config: CaptchaConfig = {
-        requestCaptchaDataUrl: `${baseURL}captcha/generate`,
-        validCaptchaUrl: `${baseURL}captcha/verify`, 
-        bindEl: "#captcha-container",
-        validSuccess: (res: any, _: any, tac: any) => {
-          
-
-          form.captchaId = res.data.validToken
-
-          setShowCaptcha(false);
-          tac.destroyWindow();
-          performLogin();
-        },
-        validFail: (_: any, _captcha: any, tac: any) => {
-          tac.reloadCaptcha();
-        },
-        btnCloseFun: (_event: any, tac: any) => {
-          setShowCaptcha(false);
-          tac.destroyWindow();
-          setLoading(false);
-        },
-        btnRefreshFun: (_event: any, tac: any) => {
-          tac.reloadCaptcha();
-        }
-      };
-
-      // 检测暗黑模式
-      const isDarkMode = document.documentElement.classList.contains('dark') || 
-                        document.documentElement.getAttribute('data-theme') === 'dark' ||
-                        window.matchMedia('(prefers-color-scheme: dark)').matches;
-      
-      // 根据主题调整颜色
-      const trackColor = isDarkMode ? "#4a5568" : "#7db0be"; // 暗黑模式使用更深的灰蓝色
-      
-      const style: CaptchaStyle = {
-        bgUrl: bgImage,
-        logoUrl: null,
-        moveTrackMaskBgColor: trackColor,
-        moveTrackMaskBorderColor: trackColor
-      };
-
-      tacInstanceRef.current = new window.TAC(config, style);
-      tacInstanceRef.current.init();
-
-    } catch (error) {
-      console.error('初始化验证码失败:', error);
-      toast.error('验证码初始化失败，请刷新页面重试');
-      setShowCaptcha(false);
-      setLoading(false);
     }
   };
 
@@ -261,7 +159,7 @@ export default function IndexPage() {
         return;
       }
 
-      // 返回数据结构：{ enabled: 0/1, type: string, turnstile_site_key: string }
+      // 返回数据结构：{ enabled: 0/1, type: "TURNSTILE", turnstile_site_key: string }
       const captchaData = checkResponse.data;
       
       // 检查是否启用验证码
@@ -269,28 +167,15 @@ export default function IndexPage() {
         // 不需要验证码，直接登录
         await performLogin();
       } else {
-        // 需要验证码
-        const type = captchaData?.type || 'RANDOM';
-        setCaptchaType(type);
-        
-        if (type === 'TURNSTILE') {
-          // Turnstile 验证码
-          const siteKey = captchaData?.turnstile_site_key || '';
-          if (!siteKey) {
-            toast.error('Turnstile 配置错误：缺少 Site Key');
-            setLoading(false);
-            return;
-          }
-          setTurnstileSiteKey(siteKey);
-          setShowCaptcha(true);
-        } else {
-          // 传统验证码，显示验证码弹层
-          setShowCaptcha(true);
-          // 延时初始化验证码，确保DOM已渲染
-          setTimeout(() => {
-            initCaptcha();
-          }, 100);
+        // 需要 Turnstile 验证码
+        const siteKey = captchaData?.turnstile_site_key || '';
+        if (!siteKey) {
+          toast.error('Turnstile 配置错误：缺少 Site Key');
+          setLoading(false);
+          return;
         }
+        setTurnstileSiteKey(siteKey);
+        setShowCaptcha(true);
       }
     } catch (error) {
       console.error('检查验证码状态错误:', error);
@@ -384,65 +269,47 @@ export default function IndexPage() {
           <div className="fixed inset-0 z-50 flex items-center justify-center">
             {/* 背景遮罩层 - 模糊效果，暗黑模式下更深 */}
             <div 
-              className="absolute inset-0 bg-black/60 dark:bg-black/80 backdrop-blur-sm captcha-backdrop-enter" 
+              className="absolute inset-0 bg-black/60 dark:bg-black/80 backdrop-blur-sm" 
               onClick={() => {
-                if (captchaType === 'TURNSTILE') {
-                  setShowCaptcha(false);
-                  setLoading(false);
-                }
+                setShowCaptcha(false);
+                setLoading(false);
               }}
             />
-            {/* 验证码容器 */}
-            {captchaType === 'TURNSTILE' ? (
-              <div className="relative z-10 bg-white dark:bg-gray-800 rounded-lg p-6 shadow-xl captcha-modal-enter">
-                <div className="text-center mb-4">
-                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white">人机验证</h3>
-                  <p className="text-sm text-gray-500 dark:text-gray-400">请完成以下验证以继续</p>
-                </div>
-                <Turnstile
-                  ref={turnstileRef}
-                  siteKey={turnstileSiteKey}
-                  onSuccess={handleTurnstileSuccess}
-                  onError={handleTurnstileError}
-                  onExpire={() => {
-                    toast.error('验证已过期，请重试');
-                    if (turnstileRef.current) {
-                      turnstileRef.current.reset();
-                    }
-                  }}
-                  options={{
-                    theme: document.documentElement.classList.contains('dark') || 
-                           document.documentElement.getAttribute('data-theme') === 'dark' ||
-                           window.matchMedia('(prefers-color-scheme: dark)').matches 
-                           ? 'dark' : 'light',
-                    size: 'normal'
-                  }}
-                />
-                <button
-                  onClick={() => {
-                    setShowCaptcha(false);
-                    setLoading(false);
-                  }}
-                  className="mt-4 w-full text-center text-sm text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300"
-                >
-                  取消
-                </button>
+            {/* Turnstile 验证码容器 */}
+            <div className="relative z-10 bg-white dark:bg-gray-800 rounded-lg p-6 shadow-xl">
+              <div className="text-center mb-4">
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-white">人机验证</h3>
+                <p className="text-sm text-gray-500 dark:text-gray-400">请完成以下验证以继续</p>
               </div>
-            ) : (
-              <div className="mb-4">
-                <div 
-                  id="captcha-container" 
-                  ref={captchaContainerRef}
-                  className="w-full flex justify-center"
-                  style={{
-                    filter: document.documentElement.classList.contains('dark') || 
-                           document.documentElement.getAttribute('data-theme') === 'dark' ||
-                           window.matchMedia('(prefers-color-scheme: dark)').matches 
-                           ? 'brightness(0.8) contrast(0.9)' : 'none'
-                  }}
-                />
-              </div>
-            )}
+              <Turnstile
+                ref={turnstileRef}
+                siteKey={turnstileSiteKey}
+                onSuccess={handleTurnstileSuccess}
+                onError={handleTurnstileError}
+                onExpire={() => {
+                  toast.error('验证已过期，请重试');
+                  if (turnstileRef.current) {
+                    turnstileRef.current.reset();
+                  }
+                }}
+                options={{
+                  theme: document.documentElement.classList.contains('dark') || 
+                         document.documentElement.getAttribute('data-theme') === 'dark' ||
+                         window.matchMedia('(prefers-color-scheme: dark)').matches 
+                         ? 'dark' : 'light',
+                  size: 'normal'
+                }}
+              />
+              <button
+                onClick={() => {
+                  setShowCaptcha(false);
+                  setLoading(false);
+                }}
+                className="mt-4 w-full text-center text-sm text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300"
+              >
+                取消
+              </button>
+            </div>
           </div>
         )}
       </section>

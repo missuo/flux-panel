@@ -65,7 +65,7 @@ func newSliderDriver() *base64Captcha.DriverString {
 	}
 }
 
-// Check 检查是否启用验证码，返回验证码类型和配置
+// Check 检查是否启用验证码（Cloudflare Turnstile）
 func (h *CaptchaHandler) Check(c *gin.Context) {
 	config, err := h.configService.GetConfigByName("captcha_enabled")
 	if err != nil || config.Value != "true" {
@@ -73,37 +73,18 @@ func (h *CaptchaHandler) Check(c *gin.Context) {
 		return
 	}
 
-	// 获取验证码类型
-	captchaType := "RANDOM"
-	typeConfig, err := h.configService.GetConfigByName("captcha_type")
-	if err == nil && typeConfig.Value != "" {
-		captchaType = typeConfig.Value
-	}
-
-	// 如果是 Turnstile，返回 site key
-	if captchaType == "TURNSTILE" {
-		siteKeyConfig, err := h.configService.GetConfigByName("turnstile_site_key")
-		if err != nil || siteKeyConfig.Value == "" {
-			// 如果没有配置 site key，回退到默认验证码
-			utils.Success(c, gin.H{
-				"enabled": 1,
-				"type":    "RANDOM",
-			})
-			return
-		}
-
-		utils.Success(c, gin.H{
-			"enabled":            1,
-			"type":               captchaType,
-			"turnstile_site_key": siteKeyConfig.Value,
-		})
+	// 获取 Turnstile Site Key
+	siteKeyConfig, err := h.configService.GetConfigByName("turnstile_site_key")
+	if err != nil || siteKeyConfig.Value == "" {
+		// 如果没有配置 site key，禁用验证码
+		utils.Success(c, 0)
 		return
 	}
 
-	// 其他验证码类型
 	utils.Success(c, gin.H{
-		"enabled": 1,
-		"type":    captchaType,
+		"enabled":            1,
+		"type":               "TURNSTILE",
+		"turnstile_site_key": siteKeyConfig.Value,
 	})
 }
 

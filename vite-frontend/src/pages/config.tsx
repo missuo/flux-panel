@@ -48,7 +48,7 @@ const CONFIG_ITEMS: ConfigItem[] = [
     key: 'ip',
     label: '面板后端地址',
     placeholder: '请输入面板后端IP:PORT',
-    description: '格式“ip:port”,用于对接节点时使用,ip是你安装面板服务器的公网ip,端口是安装脚本内输入的后端端口。不要套CDN,不支持https,通讯数据有加密',
+    description: '格式"ip:port",用于对接节点时使用,ip是你安装面板服务器的公网ip,端口是安装脚本内输入的后端端口。不要套CDN,不支持https,通讯数据有加密',
     type: 'input'
   },
   {
@@ -60,49 +60,9 @@ const CONFIG_ITEMS: ConfigItem[] = [
   },
   {
     key: 'captcha_enabled',
-    label: '启用验证码',
-    description: '开启后，用户登录时需要完成验证码验证',
+    label: '启用 Cloudflare Turnstile',
+    description: '开启后，用户登录时需要完成 Cloudflare Turnstile 人机验证',
     type: 'switch'
-  },
-  {
-    key: 'captcha_type',
-    label: '验证码类型',
-    description: '选择验证码的显示类型，不同类型有不同的安全级别',
-    type: 'select',
-    dependsOn: 'captcha_enabled',
-    dependsValue: 'true',
-    options: [
-      { 
-        label: '随机类型', 
-        value: 'RANDOM', 
-        description: '系统随机选择验证码类型' 
-      },
-      { 
-        label: '滑块验证码', 
-        value: 'SLIDER', 
-        description: '拖动滑块完成拼图验证' 
-      },
-      { 
-        label: '文字点选验证码', 
-        value: 'WORD_IMAGE_CLICK', 
-        description: '按顺序点击指定文字' 
-      },
-      { 
-        label: '旋转验证码', 
-        value: 'ROTATE', 
-        description: '旋转图片到正确角度' 
-      },
-      { 
-        label: '拼图验证码', 
-        value: 'CONCAT', 
-        description: '拖动滑块完成图片拼接' 
-      },
-      { 
-        label: 'Cloudflare Turnstile', 
-        value: 'TURNSTILE', 
-        description: '使用 Cloudflare Turnstile 进行人机验证' 
-      }
-    ]
   },
   {
     key: 'turnstile_site_key',
@@ -110,8 +70,8 @@ const CONFIG_ITEMS: ConfigItem[] = [
     placeholder: '请输入 Cloudflare Turnstile Site Key',
     description: '从 Cloudflare Dashboard 获取的 Site Key（公钥），用于前端 widget',
     type: 'input',
-    dependsOn: 'captcha_type',
-    dependsValue: 'TURNSTILE'
+    dependsOn: 'captcha_enabled',
+    dependsValue: 'true'
   },
   {
     key: 'turnstile_secret_key',
@@ -119,8 +79,8 @@ const CONFIG_ITEMS: ConfigItem[] = [
     placeholder: '请输入 Cloudflare Turnstile Secret Key',
     description: '从 Cloudflare Dashboard 获取的 Secret Key（私钥），用于后端验证，请妥善保管',
     type: 'input',
-    dependsOn: 'captcha_type',
-    dependsValue: 'TURNSTILE'
+    dependsOn: 'captcha_enabled',
+    dependsValue: 'true'
   }
 ];
 

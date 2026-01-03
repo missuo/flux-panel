@@ -8,8 +8,9 @@
 #import "FLXLoginViewController.h"
 #import "FLXAPIClient.h"
 #import "FLXMainTabBarController.h"
+#import "FLXWebLoginViewController.h"
 
-@interface FLXLoginViewController () <UITextFieldDelegate>
+@interface FLXLoginViewController () <UITextFieldDelegate, FLXWebLoginDelegate>
 
 @property(nonatomic, strong) UIScrollView *scrollView;
 @property(nonatomic, strong) UIView *contentView;
@@ -334,11 +335,20 @@
         }
 
         // 检查是否需要验证码
-        NSInteger captchaRequired = [response[@"data"] integerValue];
-        if (captchaRequired != 0) {
+        // 新的返回格式可能是对象 { enabled: 1, type: "TURNSTILE", ... }
+        // 或者数字 0/1
+        BOOL captchaRequired = NO;
+        if ([response[@"data"] isKindOfClass:[NSDictionary class]]) {
+          NSDictionary *data = response[@"data"];
+          captchaRequired = [data[@"enabled"] integerValue] != 0;
+        } else {
+          captchaRequired = [response[@"data"] integerValue] != 0;
+        }
+
+        if (captchaRequired) {
           [self setLoading:NO];
-          [self showAlertWithTitle:@"提示"
-                           message:@"当前需要验证码，请使用网页版登录"];
+          // 需要验证码，打开 WebView 登录页面
+          [self showWebLogin];
           return;
         }
 
@@ -440,6 +450,48 @@
                                             style:UIAlertActionStyleDefault
                                           handler:nil]];
   [self presentViewController:alert animated:YES completion:nil];
+}
+
+#pragma mark - WebView 登录
+
+- (void)showWebLogin {
+  NSString *server = [self.serverTextField.text
+      stringByTrimmingCharactersInSet:[NSCharacterSet whitespaceCharacterSet]];
+
+  FLXWebLoginViewController *webLoginVC =
+      [[FLXWebLoginViewController alloc] initWithServerURL:server];
+  webLoginVC.delegate = self;
+  webLoginVC.modalPresentationStyle = UIModalPresentationFullScreen;
+  [self presentViewController:webLoginVC animated:YES completion:nil];
+}
+
+#pragma mark - FLXWebLoginDelegate
+
+- (void)webLoginDidSucceedWithToken:(NSString *)token
+                             roleId:(NSInteger)roleId
+                           userName:(NSString *)userName
+              requirePasswordChange:(BOOL)requirePasswordChange {
+  // 保存登录信息
+  [[FLXAPIClient sharedClient] setAuthToken:token];
+  [[NSUserDefaults standardUserDefaults] setInteger:roleId forKey:@"roleId"];
+  [[NSUserDefaults standardUserDefaults] setObject:userName forKey:@"userName"];
+  [[NSUserDefaults standardUserDefaults] setBool:(roleId == 0)
+                                          forKey:@"isAdmin"];
+  [[NSUserDefaults standardUserDefaults] synchronize];
+
+  // 检查是否需要修改密码
+  if (requirePasswordChange) {
+    [self showAlertWithTitle:@"提示"
+                     message:@"检测到默认密码，请在网页版修改密码后重新登录"];
+    return;
+  }
+
+  // 跳转到主界面
+  [self navigateToMainScreen];
+}
+
+- (void)webLoginDidCancel {
+  // 用户取消了 WebView 登录，无需额外处理
 }
 
 #pragma mark - UITextFieldDelegate

@@ -128,7 +128,7 @@ func (s *NodeService) GetInstallCommand(id uint) (string, error) {
 
 	// 生成安装命令（与 Spring Boot 保持一致）
 	command := fmt.Sprintf(
-		"curl -L https://github.com/missuo/flux-panel/releases/download/v1.5.3/install.sh -o ./install.sh && chmod +x ./install.sh && ./install.sh -a %s -s %s",
+		"curl -L https://github.com/missuo/flux-panel/releases/download/v1.5.4/install.sh -o ./install.sh && chmod +x ./install.sh && ./install.sh -a %s -s %s",
 		processedAddr,
 		node.Secret,
 	)
