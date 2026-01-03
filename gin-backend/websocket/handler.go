@@ -1,11 +1,16 @@
 package websocket
 
 import (
+	"encoding/json"
 	"log"
 	"net/http"
 	"strconv"
 
+	"flux-panel/config"
+	"fmt"
+
 	"github.com/gin-gonic/gin"
+	"github.com/golang-jwt/jwt/v5"
 	"github.com/gorilla/websocket"
 	"gorm.io/gorm"
 )
@@ -14,6 +19,15 @@ import (
 type Handler struct {
 	db       *gorm.DB
 	upgrader websocket.Upgrader
+}
+
+// Claims JWT自定义声明
+type Claims struct {
+	UserID int    `json:"sub"`
+	User   string `json:"user"`
+	Name   string `json:"name"`
+	RoleID int    `json:"role_id"`
+	jwt.RegisteredClaims
 }
 
 // Node 节点模型（完整版，用于更新状态）
@@ -46,6 +60,26 @@ func NewHandler(db *gorm.DB) *Handler {
 	}
 }
 
+// parseToken 解析JWT Token
+func parseToken(tokenString string) (*Claims, error) {
+	token, err := jwt.ParseWithClaims(tokenString, &Claims{}, func(token *jwt.Token) (interface{}, error) {
+		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
+			return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
+		}
+		return []byte(config.AppConfig.JWT.Secret), nil
+	})
+
+	if err != nil {
+		return nil, err
+	}
+
+	if claims, ok := token.Claims.(*Claims); ok && token.Valid {
+		return claims, nil
+	}
+
+	return nil, fmt.Errorf("invalid token")
+}
+
 // HandleConnection 处理 WebSocket 连接
 func (h *Handler) HandleConnection(c *gin.Context) {
 	secret := c.Query("secret")
@@ -54,6 +88,22 @@ func (h *Handler) HandleConnection(c *gin.Context) {
 		return
 	}
 
+	// 1. 尝试解析为用户 Token
+	// 避免循环引用，这里直接解析
+	if claims, err := parseToken(secret); err == nil && claims != nil {
+		// 是用户连接
+		conn, err := h.upgrader.Upgrade(c.Writer, c.Request, nil)
+		if err != nil {
+			log.Printf("用户 WebSocket 升级失败: %v", err)
+			return
+		}
+
+		uc := GetServer().AddUserConnection(conn)
+		uc.readPump() // 阻塞直到连接关闭
+		return
+	}
+
+	// 2. 尝试作为节点连接
 	// 获取额外参数
 	version := c.Query("version")
 	httpStr := c.Query("http")
@@ -102,6 +152,16 @@ func (h *Handler) HandleConnection(c *gin.Context) {
 		log.Printf("更新节点 %d 状态失败: %v", node.ID, err)
 	} else {
 		log.Printf("节点 %d 连接建立成功，状态更新为在线", node.ID)
+
+		// 广播上线消息
+		statusMsg := map[string]interface{}{
+			"type": "status",
+			"id":   node.ID,
+			"data": 1,
+		}
+		if msgBytes, err := json.Marshal(statusMsg); err == nil {
+			GetServer().BroadcastToUsers(msgBytes)
+		}
 	}
 
 	// 添加到连接管理器，并设置断开回调
@@ -120,6 +180,16 @@ func (h *Handler) handleDisconnect(nc *NodeConnection, nodeID uint) {
 	if GetServer().GetConnection(nodeID) == nil {
 		// 不再更新节点状态为离线
 		log.Printf("节点 %d 已断开所有连接", nodeID)
+
+		// 广播下线消息
+		statusMsg := map[string]interface{}{
+			"type": "status",
+			"id":   nodeID,
+			"data": 0,
+		}
+		if msgBytes, err := json.Marshal(statusMsg); err == nil {
+			GetServer().BroadcastToUsers(msgBytes)
+		}
 	}
 }
 

@@ -13,17 +13,17 @@ import (
 
 // 消息类型
 const (
-	MessageTypeAddLimiters         = "AddLimiters"
-	MessageTypeUpdateLimiters      = "UpdateLimiters"
-	MessageTypeDeleteLimiters      = "DeleteLimiters"
-	MessageTypeAddService          = "AddService"
-	MessageTypeUpdateService       = "UpdateService"
-	MessageTypeDeleteService       = "DeleteService"
-	MessageTypePauseService        = "PauseService"
-	MessageTypeResumeService       = "ResumeService"
-	MessageTypeAddChains           = "AddChains"
-	MessageTypeUpdateChains        = "UpdateChains"
-	MessageTypeDeleteChains        = "DeleteChains"
+	MessageTypeAddLimiters    = "AddLimiters"
+	MessageTypeUpdateLimiters = "UpdateLimiters"
+	MessageTypeDeleteLimiters = "DeleteLimiters"
+	MessageTypeAddService     = "AddService"
+	MessageTypeUpdateService  = "UpdateService"
+	MessageTypeDeleteService  = "DeleteService"
+	MessageTypePauseService   = "PauseService"
+	MessageTypeResumeService  = "ResumeService"
+	MessageTypeAddChains      = "AddChains"
+	MessageTypeUpdateChains   = "UpdateChains"
+	MessageTypeDeleteChains   = "DeleteChains"
 )
 
 // Message WebSocket 消息结构
@@ -51,11 +51,19 @@ type NodeConnection struct {
 	reqMutex   sync.Mutex
 }
 
+// UserConnection 用户连接
+type UserConnection struct {
+	Conn *websocket.Conn
+	Send chan []byte
+}
+
 // Server WebSocket 服务端
 type Server struct {
-	connections map[uint]*NodeConnection
-	mutex       sync.RWMutex
-	upgrader    websocket.Upgrader
+	connections     map[uint]*NodeConnection
+	userConnections map[*UserConnection]bool
+	mutex           sync.RWMutex
+	userMutex       sync.RWMutex
+	upgrader        websocket.Upgrader
 }
 
 var (
@@ -67,7 +75,8 @@ var (
 func GetServer() *Server {
 	once.Do(func() {
 		instance = &Server{
-			connections: make(map[uint]*NodeConnection),
+			connections:     make(map[uint]*NodeConnection),
+			userConnections: make(map[*UserConnection]bool),
 			upgrader: websocket.Upgrader{
 				ReadBufferSize:  1024,
 				WriteBufferSize: 1024,
@@ -137,6 +146,50 @@ func (s *Server) SendMessage(nodeID uint, data interface{}, msgType string) (*Re
 	return nc.SendMessage(data, msgType)
 }
 
+// AddUserConnection 添加用户连接
+func (s *Server) AddUserConnection(conn *websocket.Conn) *UserConnection {
+	s.userMutex.Lock()
+	defer s.userMutex.Unlock()
+
+	uc := &UserConnection{
+		Conn: conn,
+		Send: make(chan []byte, 256),
+	}
+
+	s.userConnections[uc] = true
+
+	go uc.writePump()
+
+	return uc
+}
+
+// RemoveUserConnection 移除用户连接
+func (s *Server) RemoveUserConnection(uc *UserConnection) {
+	s.userMutex.Lock()
+	defer s.userMutex.Unlock()
+
+	if _, ok := s.userConnections[uc]; ok {
+		delete(s.userConnections, uc)
+		close(uc.Send)
+		uc.Conn.Close()
+	}
+}
+
+// BroadcastToUsers 广播消息给所有用户
+func (s *Server) BroadcastToUsers(message []byte) {
+	s.userMutex.RLock()
+	defer s.userMutex.RUnlock()
+
+	for uc := range s.userConnections {
+		select {
+		case uc.Send <- message:
+		default:
+			close(uc.Send)
+			delete(s.userConnections, uc)
+		}
+	}
+}
+
 // SendMessage 发送消息并等待响应
 func (nc *NodeConnection) SendMessage(data interface{}, msgType string) (*Response, error) {
 	// 生成消息 ID
@@ -204,32 +257,57 @@ func (nc *NodeConnection) readPump() {
 			return
 		}
 
-		// 解析响应
+		// 尝试解析为响应格式
 		var resp struct {
 			ID      string      `json:"id"`
 			Success bool        `json:"success"`
 			Message string      `json:"message"`
 			Data    interface{} `json:"data"`
+			Type    string      `json:"type"` // 添加 Type 字段以便识别
 		}
 
 		if err := json.Unmarshal(message, &resp); err != nil {
-			log.Printf("节点 %d 解析响应失败: %v", nc.NodeID, err)
+			log.Printf("节点 %d 解析消息失败: %v", nc.NodeID, err)
 			continue
 		}
 
-		// 查找对应的请求
-		nc.reqMutex.Lock()
-		if respChan, exists := nc.pendingReq[resp.ID]; exists {
-			delete(nc.pendingReq, resp.ID)
-			nc.reqMutex.Unlock()
+		// 检查是否为对 Panel 请求的响应
+		if resp.ID != "" {
+			nc.reqMutex.Lock()
+			if respChan, exists := nc.pendingReq[resp.ID]; exists {
+				delete(nc.pendingReq, resp.ID)
+				nc.reqMutex.Unlock()
 
-			respChan <- &Response{
-				Success: resp.Success,
-				Message: resp.Message,
-				Data:    resp.Data,
+				respChan <- &Response{
+					Success: resp.Success,
+					Message: resp.Message,
+					Data:    resp.Data,
+				}
+				continue // 已处理为响应，跳过广播
 			}
-		} else {
 			nc.reqMutex.Unlock()
+		}
+
+		// 如果不是响应，或者没有 ID，则视为推送消息，广播给用户
+		// 对于 Agent 上报的系统信息，通常 Type='info'
+		// 我们需要补充 NodeID，以便前端知道是哪个节点的消息
+		broadcastMsg := map[string]interface{}{
+			"id":   nc.NodeID,
+			"type": resp.Type,
+			"data": resp.Data,
+		}
+
+		// 如果 Type 为空，可能是旧版 Agent 或其他格式，默认为 info
+		if broadcastMsg["type"] == "" {
+			broadcastMsg["type"] = "info"
+			// 这种情况下 resp.Data 可能是空的因为 Unmarshal 没对上
+			// 尝试把整个 message 作为 data? 或者假设 resp.Data 即使字段不对也能解析部分？
+			// Agent 发送的是 {"type": "info", "data": {...}}，所以上面的 Unmarshal 应该能解析出 Data 和 Type
+		}
+
+		msgBytes, err := json.Marshal(broadcastMsg)
+		if err == nil {
+			GetServer().BroadcastToUsers(msgBytes)
 		}
 	}
 }
