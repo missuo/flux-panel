@@ -4,7 +4,7 @@ export type SiteConfig = typeof siteConfig;
 
 // 缓存相关常量
 const CACHE_PREFIX = 'vite_config_';
-const VERSION = "1.4.3";
+const VERSION = "1.5.0";
 const APP_VERSION = "1.0.3";
 
 const getInitialConfig = () => {
@@ -17,13 +17,13 @@ const getInitialConfig = () => {
   }
 
   const cachedAppName = localStorage.getItem(CACHE_PREFIX + 'app_name');
-    if (cachedAppName) {
-      return {
-        name: cachedAppName,
-        version: VERSION,
-        app_version: APP_VERSION,
-      };
-    }
+  if (cachedAppName) {
+    return {
+      name: cachedAppName,
+      version: VERSION,
+      app_version: APP_VERSION,
+    };
+  }
   return {
     name: "flux",
     version: VERSION,
@@ -38,13 +38,13 @@ export const configCache = {
   // 获取缓存的配置
   get: (key: string): string | null => {
     const cacheKey = CACHE_PREFIX + key;
-      return localStorage.getItem(cacheKey);
+    return localStorage.getItem(cacheKey);
   },
 
   // 设置缓存的配置
   set: (key: string, value: string): void => {
     const cacheKey = CACHE_PREFIX + key;
-      localStorage.setItem(cacheKey, value);
+    localStorage.setItem(cacheKey, value);
   },
 
   // 删除指定配置的缓存
@@ -55,13 +55,13 @@ export const configCache = {
 
   // 清空所有配置缓存
   clear: (): void => {
-   // 获取所有localStorage的key
-   const keys = Object.keys(localStorage);
-   keys.forEach(key => {
-     if (key.startsWith(CACHE_PREFIX)) {
-       localStorage.removeItem(key);
-     }
-   });
+    // 获取所有localStorage的key
+    const keys = Object.keys(localStorage);
+    keys.forEach(key => {
+      if (key.startsWith(CACHE_PREFIX)) {
+        localStorage.removeItem(key);
+      }
+    });
   }
 };
 
@@ -123,11 +123,11 @@ export const getCachedConfigs = async (): Promise<Record<string, string>> => {
 // 动态更新网站配置
 export const updateSiteConfig = async () => {
   const appName = await getCachedConfig('app_name');
-    if (appName && appName !== siteConfig.name) {
-      siteConfig.name = appName;
-      // 更新页面标题
-      document.title = appName;
-    }
+  if (appName && appName !== siteConfig.name) {
+    siteConfig.name = appName;
+    // 更新页面标题
+    document.title = appName;
+  }
 };
 
 // 清除配置缓存的工具函数
