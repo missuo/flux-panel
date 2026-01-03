@@ -296,8 +296,21 @@ static NSString *formatBytes(NSInteger bytes) {
   if (self) {
     _tunnelId = [dict[@"id"] integerValue];
     _name = dict[@"name"] ?: @"";
+    _inNodeId = [dict[@"inNodeId"] integerValue];
+    _outNodeId = [dict[@"outNodeId"] integerValue];
+    _inIP = dict[@"inIp"] ?: @"";
+    _outIP = dict[@"outIp"] ?: @"";
+    _type = [dict[@"type"] integerValue];
+    _flow = [dict[@"flow"] integerValue];
+    _protocol = dict[@"protocol"] ?: @"tcp+udp";
+    _trafficRatio = [dict[@"trafficRatio"] floatValue];
+    _tcpListenAddr = dict[@"tcpListenAddr"];
+    _udpListenAddr = dict[@"udpListenAddr"];
+    _interfaceName = dict[@"interfaceName"];
     _inNodePortSta = [dict[@"inNodePortSta"] integerValue];
     _inNodePortEnd = [dict[@"inNodePortEnd"] integerValue];
+    _inNodeName = dict[@"inNodeName"];
+    _outNodeName = dict[@"outNodeName"];
   }
   return self;
 }
@@ -315,6 +328,102 @@ static NSString *formatBytes(NSInteger bytes) {
   }
   return [NSString stringWithFormat:@"%ld-%ld", (long)self.inNodePortSta,
                                     (long)self.inNodePortEnd];
+}
+
+- (NSString *)typeString {
+  return self.type == 1 ? @"端口转发" : @"隧道转发";
+}
+
+- (NSString *)flowString {
+  return self.flow == 1 ? @"单向计费" : @"双向计费";
+}
+
+@end
+
+#pragma mark - FLXNode
+
+@implementation FLXNode
+
+- (instancetype)initWithDictionary:(NSDictionary *)dict {
+  self = [super init];
+  if (self) {
+    _nodeId = [dict[@"id"] integerValue];
+    _name = dict[@"name"] ?: @"";
+    _secret = dict[@"secret"] ?: @"";
+    _ip = dict[@"ip"] ?: @"";
+    _serverIp = dict[@"serverIp"];
+    _version = dict[@"version"];
+    _portSta = [dict[@"portSta"] integerValue];
+    _portEnd = [dict[@"portEnd"] integerValue];
+    _http = [dict[@"http"] integerValue];
+    _tls = [dict[@"tls"] integerValue];
+    _socks = [dict[@"socks"] integerValue];
+    _isOnline = [dict[@"isOnline"] boolValue];
+  }
+  return self;
+}
+
+- (NSString *)portRangeDescription {
+  if (self.portSta == 0 && self.portEnd == 0) {
+    return @"不限";
+  }
+  return [NSString
+      stringWithFormat:@"%ld-%ld", (long)self.portSta, (long)self.portEnd];
+}
+
+- (NSString *)statusString {
+  return self.isOnline ? @"在线" : @"离线";
+}
+
+@end
+
+#pragma mark - FLXUser
+
+@implementation FLXUser
+
+- (instancetype)initWithDictionary:(NSDictionary *)dict {
+  self = [super init];
+  if (self) {
+    _userId = [dict[@"id"] integerValue];
+    _username = dict[@"user"] ?: dict[@"username"] ?: @"";
+    _roleId = [dict[@"roleId"] integerValue];
+    _flow = [dict[@"flow"] integerValue];
+    _inFlow = [dict[@"inFlow"] integerValue];
+    _outFlow = [dict[@"outFlow"] integerValue];
+    _num = [dict[@"num"] integerValue];
+    _expTime = dict[@"expTime"];
+    _flowResetTime = [dict[@"flowResetTime"] integerValue];
+    _status = [dict[@"status"] integerValue];
+  }
+  return self;
+}
+
+- (BOOL)isAdmin {
+  return self.roleId == 0;
+}
+
+- (NSString *)formattedFlow {
+  if (self.flow == kUnlimitedValue) {
+    return @"无限制";
+  }
+  return [NSString stringWithFormat:@"%ld GB", (long)self.flow];
+}
+
+- (NSString *)formattedUsedFlow {
+  NSInteger totalUsed = self.inFlow + self.outFlow;
+  return formatBytes(totalUsed);
+}
+
+- (NSString *)roleString {
+  return self.roleId == 0 ? @"管理员" : @"普通用户";
+}
+
+- (BOOL)isUnlimitedFlow {
+  return self.flow == kUnlimitedValue;
+}
+
+- (BOOL)isUnlimitedNum {
+  return self.num == kUnlimitedValue;
 }
 
 @end
