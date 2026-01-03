@@ -118,6 +118,14 @@ func (s *NodeService) GetInstallCommand(id uint) (string, error) {
 	// 处理 IPv6 地址
 	processedAddr := processServerAddress(panelAddr)
 
+	// 检查 Secret 是否为空，如果为空则生成并保存
+	if node.Secret == "" {
+		node.Secret = strings.ReplaceAll(uuid.New().String(), "-", "")
+		if err := s.repo.Update(node); err != nil {
+			return "", errors.New("更新节点密钥失败")
+		}
+	}
+
 	// 生成安装命令（与 Spring Boot 保持一致）
 	command := fmt.Sprintf(
 		"curl -L https://github.com/missuo/flux-panel/releases/download/v1.5.0/install.sh -o ./install.sh && chmod +x ./install.sh && ./install.sh -a %s -s %s",

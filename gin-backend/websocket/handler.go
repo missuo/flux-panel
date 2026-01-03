@@ -77,9 +77,7 @@ func (h *Handler) HandleConnection(c *gin.Context) {
 	}
 
 	// 更新节点状态和参数
-	updates := map[string]interface{}{
-		"status": 1, // 在线
-	}
+	updates := map[string]interface{}{}
 
 	if version != "" {
 		updates["version"] = version
@@ -120,12 +118,8 @@ func (h *Handler) handleDisconnect(nc *NodeConnection, nodeID uint) {
 
 	// 检查是否还有其他连接
 	if GetServer().GetConnection(nodeID) == nil {
-		// 更新节点状态为离线
-		if err := h.db.Model(&Node{}).Where("id = ?", nodeID).Update("status", 0).Error; err != nil {
-			log.Printf("更新节点 %d 为离线状态失败: %v", nodeID, err)
-		} else {
-			log.Printf("节点 %d 状态更新为离线", nodeID)
-		}
+		// 不再更新节点状态为离线
+		log.Printf("节点 %d 已断开所有连接", nodeID)
 	}
 }
 
