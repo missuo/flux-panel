@@ -184,10 +184,25 @@ func (s *TunnelService) performTcpPingDiagnosis(node *models.Node, targetIp stri
 
 // CreateTunnel 创建隧道
 func (s *TunnelService) CreateTunnel(tunnelDto *dto.TunnelDto) error {
+	inNode, err := s.nodeRepo.FindByID(tunnelDto.InNodeID)
+	if err != nil {
+		return errors.New("入口节点不存在")
+	}
+
+	outIP := ""
+	if tunnelDto.OutNodeID > 0 {
+		outNode, err := s.nodeRepo.FindByID(tunnelDto.OutNodeID)
+		if err == nil {
+			outIP = outNode.ServerIP
+		}
+	}
+
 	tunnel := &models.Tunnel{
 		Name:          tunnelDto.Name,
 		InNodeID:      tunnelDto.InNodeID,
+		InIP:          inNode.ServerIP,
 		OutNodeID:     tunnelDto.OutNodeID,
+		OutIP:         outIP,
 		Type:          tunnelDto.Type,
 		Flow:          tunnelDto.Flow,
 		Protocol:      tunnelDto.Protocol,
@@ -224,9 +239,17 @@ func (s *TunnelService) UpdateTunnel(updateDto *dto.TunnelUpdateDto) error {
 	}
 	if updateDto.InNodeID != nil {
 		tunnel.InNodeID = *updateDto.InNodeID
+		if node, err := s.nodeRepo.FindByID(*updateDto.InNodeID); err == nil {
+			tunnel.InIP = node.ServerIP
+		}
 	}
 	if updateDto.OutNodeID != nil {
 		tunnel.OutNodeID = *updateDto.OutNodeID
+		if node, err := s.nodeRepo.FindByID(*updateDto.OutNodeID); err == nil {
+			tunnel.OutIP = node.ServerIP
+		} else {
+			tunnel.OutIP = ""
+		}
 	}
 	if updateDto.Type != nil {
 		tunnel.Type = *updateDto.Type

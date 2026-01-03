@@ -16,6 +16,7 @@ import (
 )
 
 type ForwardService struct {
+	db             *gorm.DB
 	repo           *repository.ForwardRepository
 	tunnelRepo     *repository.TunnelRepository
 	userTunnelRepo *repository.UserTunnelRepository
@@ -24,6 +25,7 @@ type ForwardService struct {
 
 func NewForwardService(db *gorm.DB) *ForwardService {
 	return &ForwardService{
+		db:             db,
 		repo:           repository.NewForwardRepository(db),
 		tunnelRepo:     repository.NewTunnelRepository(db),
 		userTunnelRepo: repository.NewUserTunnelRepository(db),
@@ -33,17 +35,22 @@ func NewForwardService(db *gorm.DB) *ForwardService {
 
 // CreateForward 创建转发
 func (s *ForwardService) CreateForward(userID int, userName string, forwardDto *dto.ForwardDto) error {
-	inPort := 0
-	if forwardDto.InPort != nil {
-		inPort = *forwardDto.InPort
-	}
-
 	tunnel, err := s.tunnelRepo.FindByID(uint(forwardDto.TunnelID))
 	if err != nil {
 		return errors.New("隧道不存在")
 	}
 	if tunnel.Status != 1 {
 		return errors.New("隧道被禁用")
+	}
+
+	allocInPort, allocOutPort, err := s.allocatePorts(tunnel)
+	if err != nil {
+		return err
+	}
+
+	inPort := allocInPort
+	if forwardDto.InPort != nil {
+		inPort = *forwardDto.InPort
 	}
 
 	userTunnel, _ := s.userTunnelRepo.FindByUserAndTunnel(uint(userID), tunnel.ID)
@@ -56,6 +63,7 @@ func (s *ForwardService) CreateForward(userID int, userName string, forwardDto *
 		RemoteAddr:    forwardDto.RemoteAddr,
 		Strategy:      forwardDto.Strategy,
 		InPort:        inPort,
+		OutPort:       allocOutPort,
 		InterfaceName: forwardDto.InterfaceName,
 	}
 	forward.Status = 1
@@ -137,6 +145,80 @@ func (s *ForwardService) createGostServices(forward *models.Forward, tunnel *mod
 	}
 
 	return nil
+}
+
+// allocatePorts 分配端口
+func (s *ForwardService) allocatePorts(tunnel *models.Tunnel) (int, int, error) {
+	// 1. 分配入口端口
+	inNode, err := s.nodeRepo.FindByID(tunnel.InNodeID)
+	if err != nil {
+		return 0, 0, errors.New("入口节点不存在")
+	}
+
+	usedInPorts := s.getAllUsedPorts(tunnel.InNodeID)
+	inPort := 0
+	for p := inNode.PortSta; p <= inNode.PortEnd; p++ {
+		if !usedInPorts[p] {
+			inPort = p
+			break
+		}
+	}
+	if inPort == 0 {
+		return 0, 0, errors.New("入口节点无可用端口")
+	}
+
+	// 2. 分配出口端口 (仅隧道转发)
+	outPort := 0
+	if tunnel.Type == 2 {
+		outNode, err := s.nodeRepo.FindByID(tunnel.OutNodeID)
+		if err != nil {
+			return 0, 0, errors.New("出口节点不存在")
+		}
+
+		usedOutPorts := s.getAllUsedPorts(tunnel.OutNodeID)
+		for p := outNode.PortSta; p <= outNode.PortEnd; p++ {
+			if !usedOutPorts[p] {
+				outPort = p
+				break
+			}
+		}
+		if outPort == 0 {
+			return 0, 0, errors.New("出口节点无可用端口")
+		}
+	}
+
+	return inPort, outPort, nil
+}
+
+// getAllUsedPorts 获取节点已用端口
+func (s *ForwardService) getAllUsedPorts(nodeID uint) map[int]bool {
+	used := make(map[int]bool)
+	var ports []int
+
+	// 1. 作为入口节点被占用的端口
+	// SELECT forward.in_port FROM forward JOIN tunnel ON forward.tunnel_id = tunnel.id WHERE tunnel.in_node_id = ?
+	s.db.Table("forward").
+		Joins("JOIN tunnel ON forward.tunnel_id = tunnel.id").
+		Where("tunnel.in_node_id = ?", nodeID).
+		Pluck("forward.in_port", &ports)
+
+	for _, p := range ports {
+		used[p] = true
+	}
+
+	// 2. 作为出口节点被占用的端口
+	// SELECT forward.out_port FROM forward JOIN tunnel ON forward.tunnel_id = tunnel.id WHERE tunnel.out_node_id = ?
+	ports = []int{}
+	s.db.Table("forward").
+		Joins("JOIN tunnel ON forward.tunnel_id = tunnel.id").
+		Where("tunnel.out_node_id = ?", nodeID).
+		Pluck("forward.out_port", &ports)
+
+	for _, p := range ports {
+		used[p] = true
+	}
+
+	return used
 }
 
 // GetAllForwards 获取所有转发
