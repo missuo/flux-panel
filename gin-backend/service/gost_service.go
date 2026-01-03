@@ -1,6 +1,7 @@
 package service
 
 import (
+	"flux-panel/models"
 	"flux-panel/websocket"
 	"fmt"
 	"strings"
@@ -11,16 +12,6 @@ type GostResponse struct {
 	Success bool        `json:"success"`
 	Message string      `json:"message"`
 	Data    interface{} `json:"data"`
-}
-
-// Tunnel 隧道信息（用于 Gost 配置）
-type Tunnel struct {
-	ID            uint
-	Type          int    // 1=端口转发, 2=隧道
-	Protocol      string // tls, quic 等
-	TcpListenAddr string
-	UdpListenAddr string
-	InterfaceName string
 }
 
 // AddLimiters 添加限流器
@@ -54,7 +45,7 @@ func DeleteLimiters(nodeID uint, name uint) *GostResponse {
 
 // AddService 添加服务 (TCP/UDP)
 func AddService(nodeID uint, name string, inPort int, limiter *int, remoteAddr string,
-	forwardType int, tunnel *Tunnel, strategy, interfaceName string) *GostResponse {
+	forwardType int, tunnel *models.Tunnel, strategy, interfaceName string) *GostResponse {
 
 	services := make([]map[string]interface{}, 0, 2)
 	protocols := []string{"tcp", "udp"}
@@ -69,7 +60,7 @@ func AddService(nodeID uint, name string, inPort int, limiter *int, remoteAddr s
 
 // UpdateService 更新服务
 func UpdateService(nodeID uint, name string, inPort int, limiter *int, remoteAddr string,
-	forwardType int, tunnel *Tunnel, strategy, interfaceName string) *GostResponse {
+	forwardType int, tunnel *models.Tunnel, strategy, interfaceName string) *GostResponse {
 
 	services := make([]map[string]interface{}, 0, 2)
 	protocols := []string{"tcp", "udp"}
@@ -235,7 +226,7 @@ func DeleteChains(nodeID uint, name string) *GostResponse {
 
 // 创建服务配置
 func createServiceConfig(name string, inPort int, limiter *int, remoteAddr, protocol string,
-	forwardType int, tunnel *Tunnel, strategy, interfaceName string) map[string]interface{} {
+	forwardType int, tunnel *models.Tunnel, strategy, interfaceName string) map[string]interface{} {
 
 	service := map[string]interface{}{
 		"name": name + "_" + protocol,
@@ -243,9 +234,9 @@ func createServiceConfig(name string, inPort int, limiter *int, remoteAddr, prot
 
 	// 设置地址
 	if protocol == "tcp" && tunnel != nil {
-		service["addr"] = fmt.Sprintf("%s:%d", tunnel.TcpListenAddr, inPort)
+		service["addr"] = fmt.Sprintf("%s:%d", tunnel.TCPListenAddr, inPort)
 	} else if protocol == "udp" && tunnel != nil {
-		service["addr"] = fmt.Sprintf("%s:%d", tunnel.UdpListenAddr, inPort)
+		service["addr"] = fmt.Sprintf("%s:%d", tunnel.UDPListenAddr, inPort)
 	} else {
 		service["addr"] = fmt.Sprintf(":%d", inPort)
 	}

@@ -10,6 +10,7 @@ type UserTunnel struct {
 	InFlow        int64 `gorm:"column:in_flow;default:0" json:"inFlow"`      // 已用入流量
 	OutFlow       int64 `gorm:"column:out_flow;default:0" json:"outFlow"`    // 已用出流量
 	FlowResetTime int64 `gorm:"column:flow_reset_time" json:"flowResetTime"` // 流量重置时间
+	SpeedID       int   `gorm:"column:speed_id" json:"speedId"`              // 限速ID
 }
 
 // TableName 指定表名
