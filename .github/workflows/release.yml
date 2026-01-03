@@ -1,0 +1,115 @@
+name: Build and Release Binaries
+
+on:
+  release:
+    types: [published]
+
+jobs:
+  build-gost:
+    name: Build & Compress GOST Binary
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Set up Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: '1.21'
+
+      - name: Cache Go modules
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.cache/go-build
+            ~/go/pkg/mod
+          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-go-
+
+      - name: Install UPX
+        run: |
+          wget https://github.com/upx/upx/releases/download/v4.2.1/upx-4.2.1-amd64_linux.tar.xz
+          tar -xf upx-4.2.1-amd64_linux.tar.xz
+          sudo mv upx-4.2.1-amd64_linux/upx /usr/local/bin/
+          rm -rf upx-4.2.1-amd64_linux*
+
+      - name: Build GOST binary (AMD64)
+        working-directory: ./go-gost
+        run: |
+          CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -ldflags="-s -w" -o gost-amd64
+
+      - name: Build GOST binary (ARM64)
+        working-directory: ./go-gost
+        run: |
+          CGO_ENABLED=0 GOOS=linux GOARCH=arm64 go build -ldflags="-s -w" -o gost-arm64
+
+      - name: Compress with UPX (AMD64)
+        working-directory: ./go-gost
+        run: |
+          upx --best --lzma gost-amd64
+
+      - name: Compress with UPX (ARM64)
+        working-directory: ./go-gost
+        run: |
+          upx --best --lzma gost-arm64
+
+      - name: Upload GOST AMD64 artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: gost-binary-amd64
+          path: ./go-gost/gost-amd64
+
+      - name: Upload GOST ARM64 artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: gost-binary-arm64
+          path: ./go-gost/gost-arm64
+
+  upload-release-assets:
+    name: Upload Release Assets
+    needs: [build-gost]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Download GOST AMD64 binary
+        uses: actions/download-artifact@v4
+        with:
+          name: gost-binary-amd64
+          path: ./artifacts/amd64
+
+      - name: Download GOST ARM64 binary
+        uses: actions/download-artifact@v4
+        with:
+          name: gost-binary-arm64
+          path: ./artifacts/arm64
+
+      - name: Rename binaries
+        run: |
+          mv ./artifacts/amd64/gost-amd64 ./artifacts/gost-amd64
+          mv ./artifacts/arm64/gost-arm64 ./artifacts/gost-arm64
+
+      - name: Upload Release Assets
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          VERSION="${{ github.event.release.tag_name }}"
+          
+          echo "📤 上传 GOST 二进制文件..."
+          gh release upload "${VERSION}" ./artifacts/gost-amd64 --clobber
+          gh release upload "${VERSION}" ./artifacts/gost-arm64 --clobber
+          
+          echo "📤 上传安装脚本..."
+          gh release upload "${VERSION}" ./install.sh --clobber
+          gh release upload "${VERSION}" ./panel_install.sh --clobber
+          
+          echo "📤 上传 Docker Compose 配置文件..."
+          gh release upload "${VERSION}" ./docker-compose-v4.yml --clobber
+          gh release upload "${VERSION}" ./docker-compose-v6.yml --clobber
+          
+          echo "📤 上传数据库初始化文件..."
+          gh release upload "${VERSION}" ./gost.sql --clobber
+          
+          echo "✅ 所有文件已上传到 Release ${VERSION}"
