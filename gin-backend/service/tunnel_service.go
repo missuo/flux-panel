@@ -307,14 +307,53 @@ func (s *TunnelService) AssignUserTunnel(assignDto *dto.UserTunnelDto) error {
 }
 
 // GetUserTunnelList 获取用户隧道权限列表
-func (s *TunnelService) GetUserTunnelList(queryDto *dto.UserTunnelQueryDto) ([]models.UserTunnel, error) {
+// GetUserTunnelList 获取用户隧道权限列表
+func (s *TunnelService) GetUserTunnelList(queryDto *dto.UserTunnelQueryDto) ([]dto.UserTunnelResponseDto, error) {
+	var userTunnels []models.UserTunnel
+	var err error
+
 	if queryDto.UserID != nil {
-		return s.userTunnelRepo.FindByUserID(*queryDto.UserID)
+		userTunnels, err = s.userTunnelRepo.FindByUserID(*queryDto.UserID)
+	} else if queryDto.TunnelID != nil {
+		userTunnels, err = s.userTunnelRepo.FindByTunnelID(*queryDto.TunnelID)
+	} else {
+		userTunnels, err = s.userTunnelRepo.FindAll()
 	}
-	if queryDto.TunnelID != nil {
-		return s.userTunnelRepo.FindByTunnelID(*queryDto.TunnelID)
+
+	if err != nil {
+		return nil, err
 	}
-	return s.userTunnelRepo.FindAll()
+
+	// 获取所有隧道信息建立缓存
+	allTunnels, _ := s.repo.FindAll()
+	tunnelMap := make(map[uint]string)
+	for _, t := range allTunnels {
+		tunnelMap[t.ID] = t.Name
+	}
+
+	// 转换为 DTO
+	var responseDtos []dto.UserTunnelResponseDto
+	for _, ut := range userTunnels {
+		tunnelName := "未知隧道"
+		if name, ok := tunnelMap[ut.TunnelID]; ok {
+			tunnelName = name
+		}
+
+		responseDtos = append(responseDtos, dto.UserTunnelResponseDto{
+			ID:            ut.ID,
+			UserID:        ut.UserID,
+			TunnelID:      ut.TunnelID,
+			TunnelName:    tunnelName,
+			ExpTime:       ut.ExpTime,
+			Flow:          ut.Flow,
+			InFlow:        ut.InFlow,
+			OutFlow:       ut.OutFlow,
+			FlowResetTime: ut.FlowResetTime,
+			SpeedID:       ut.SpeedID,
+		})
+	}
+
+	return responseDtos, nil
 }
 
 // RemoveUserTunnel 移除用户隧道权限

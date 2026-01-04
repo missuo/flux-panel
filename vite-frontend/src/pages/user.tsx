@@ -33,7 +33,8 @@ import {
   UserTunnelForm, 
   Tunnel, 
   SpeedLimit, 
-  Pagination as PaginationType 
+  Pagination as PaginationType,
+  TunnelAssign 
 } from '@/types';
 import {
   getAllUsers,
@@ -123,7 +124,8 @@ export default function UserPage() {
     flow: 100,
     num: 10,
     expTime: null,
-    flowResetTime: 0
+    flowResetTime: 0,
+    tunnelAssigns: []
   });
   const [userFormLoading, setUserFormLoading] = useState(false);
 
@@ -239,6 +241,25 @@ export default function UserPage() {
     }
   };
 
+  // 为编辑用户加载已分配的隧道
+  const loadUserTunnelsForEdit = async (userId: number) => {
+    try {
+      const response = await getUserTunnelList({ userId });
+      if (response.code === 0) {
+        const tunnelAssigns: TunnelAssign[] = (response.data || []).map((ut: UserTunnel) => ({
+          tunnelId: ut.tunnelId,
+          tunnelName: ut.tunnelName,
+          flow: ut.flow,
+          expTime: ut.expTime,
+          flowResetTime: ut.flowResetTime
+        }));
+        setUserForm(prev => ({ ...prev, tunnelAssigns }));
+      }
+    } catch (error) {
+      console.error('获取用户隧道权限失败:', error);
+    }
+  };
+
   // 用户管理操作
   const handleSearch = () => {
     setPagination(prev => ({ ...prev, current: 1 }));
@@ -254,7 +275,8 @@ export default function UserPage() {
       flow: 100,
       num: 10,
       expTime: null,
-      flowResetTime: 0
+      flowResetTime: 0,
+      tunnelAssigns: []
     });
     onUserModalOpen();
   };
@@ -270,8 +292,11 @@ export default function UserPage() {
       flow: user.flow,
       num: user.num,
       expTime: user.expTime ? new Date(user.expTime) : null,
-      flowResetTime: user.flowResetTime ?? 0
+      flowResetTime: user.flowResetTime ?? 0,
+      tunnelAssigns: []
     });
+    // 加载用户已分配的隧道
+    loadUserTunnelsForEdit(user.id);
     onUserModalOpen();
   };
 
@@ -308,7 +333,14 @@ export default function UserPage() {
     try {
       const submitData: any = {
         ...userForm,
-        expTime: userForm.expTime.getTime()
+        expTime: userForm.expTime.getTime(),
+        // 格式化隧道分配数据
+        tunnelAssigns: userForm.tunnelAssigns.map(ta => ({
+          tunnelId: ta.tunnelId,
+          flow: ta.flow,
+          expTime: ta.expTime,
+          flowResetTime: ta.flowResetTime
+        }))
       };
 
       if (isEdit && !submitData.pwd) {
@@ -839,6 +871,143 @@ export default function UserPage() {
               <Radio value="1">正常</Radio>
               <Radio value="0">禁用</Radio>
             </RadioGroup>
+
+            {/* 隧道权限分配 */}
+            <div className="mt-6">
+              <h4 className="text-sm font-medium mb-3">分配隧道权限</h4>
+              
+              {/* 添加隧道 */}
+              <div className="flex gap-2 mb-3">
+                <Select
+                  placeholder="选择要添加的隧道"
+                  selectedKeys={[]}
+                  onSelectionChange={(keys) => {
+                    const tunnelId = Number(Array.from(keys)[0]);
+                    if (!tunnelId) return;
+                    
+                    // 检查是否已存在
+                    if (userForm.tunnelAssigns.some(ta => ta.tunnelId === tunnelId)) {
+                      toast.error('该隧道已添加');
+                      return;
+                    }
+                    
+                    const selectedTunnel = tunnels.find(t => t.id === tunnelId);
+                    const newTunnelAssign: TunnelAssign = {
+                      tunnelId: tunnelId,
+                      tunnelName: selectedTunnel?.name || '',
+                      flow: userForm.flow, // 默认使用用户流量
+                      expTime: userForm.expTime ? userForm.expTime.getTime() : Date.now() + 30 * 24 * 60 * 60 * 1000,
+                      flowResetTime: userForm.flowResetTime
+                    };
+                    setUserForm(prev => ({
+                      ...prev,
+                      tunnelAssigns: [...prev.tunnelAssigns, newTunnelAssign]
+                    }));
+                  }}
+                  className="flex-1"
+                >
+                  {tunnels
+                    .filter(t => !userForm.tunnelAssigns.some(ta => ta.tunnelId === t.id))
+                    .map(tunnel => (
+                      <SelectItem key={tunnel.id.toString()} textValue={tunnel.name}>
+                        {tunnel.name}
+                      </SelectItem>
+                    ))}
+                </Select>
+              </div>
+
+              {/* 已选择的隧道列表 */}
+              {userForm.tunnelAssigns.length > 0 && (
+                <div className="space-y-3 max-h-64 overflow-y-auto">
+                  {userForm.tunnelAssigns.map((ta, index) => (
+                    <Card key={ta.tunnelId} className="p-3 border border-divider">
+                      <div className="flex justify-between items-start mb-3">
+                        <span className="font-medium text-sm">
+                          {ta.tunnelName || tunnels.find(t => t.id === ta.tunnelId)?.name || `隧道 ${ta.tunnelId}`}
+                        </span>
+                        <Button
+                          size="sm"
+                          color="danger"
+                          variant="light"
+                          isIconOnly
+                          onPress={() => {
+                            setUserForm(prev => ({
+                              ...prev,
+                              tunnelAssigns: prev.tunnelAssigns.filter((_, i) => i !== index)
+                            }));
+                          }}
+                        >
+                          <DeleteIcon className="w-4 h-4" />
+                        </Button>
+                      </div>
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                        <Input
+                          label="流量(GB)"
+                          type="number"
+                          size="sm"
+                          value={ta.flow.toString()}
+                          onChange={(e) => {
+                            const value = Math.min(Math.max(Number(e.target.value) || 0, 1), 99999);
+                            setUserForm(prev => ({
+                              ...prev,
+                              tunnelAssigns: prev.tunnelAssigns.map((item, i) =>
+                                i === index ? { ...item, flow: value } : item
+                              )
+                            }));
+                          }}
+                        />
+                        <Select
+                          label="重置日期"
+                          size="sm"
+                          selectedKeys={[ta.flowResetTime.toString()]}
+                          onSelectionChange={(keys) => {
+                            const value = Number(Array.from(keys)[0]);
+                            setUserForm(prev => ({
+                              ...prev,
+                              tunnelAssigns: prev.tunnelAssigns.map((item, i) =>
+                                i === index ? { ...item, flowResetTime: value } : item
+                              )
+                            }));
+                          }}
+                        >
+                          <>
+                            <SelectItem key="0" textValue="不重置">不重置</SelectItem>
+                            {Array.from({ length: 31 }, (_, i) => i + 1).map(day => (
+                              <SelectItem key={day.toString()} textValue={`每月${day}号`}>
+                                每月{day}号
+                              </SelectItem>
+                            ))}
+                          </>
+                        </Select>
+                        <DatePicker
+                          label="到期时间"
+                          size="sm"
+                          value={ta.expTime ? parseDate(new Date(ta.expTime).toISOString().split('T')[0]) as any : null}
+                          onChange={(date) => {
+                            if (date) {
+                              const jsDate = new Date(date.year, date.month - 1, date.day, 23, 59, 59);
+                              setUserForm(prev => ({
+                                ...prev,
+                                tunnelAssigns: prev.tunnelAssigns.map((item, i) =>
+                                  i === index ? { ...item, expTime: jsDate.getTime() } : item
+                                )
+                              }));
+                            }
+                          }}
+                          showMonthAndYearPickers
+                        />
+                      </div>
+                    </Card>
+                  ))}
+                </div>
+              )}
+              
+              {userForm.tunnelAssigns.length === 0 && (
+                <p className="text-sm text-default-500 text-center py-4">
+                  暂未分配隧道权限，请从上方选择隧道添加
+                </p>
+              )}
+            </div>
           </ModalBody>
           <ModalFooter>
             <Button onPress={onUserModalClose}>

@@ -123,7 +123,26 @@ func (s *UserService) CreateUser(userDto *dto.UserDto) error {
 		Status:        status,
 	}
 
-	return s.repo.Create(user)
+	if err := s.repo.Create(user); err != nil {
+		return err
+	}
+
+	// 分配隧道权限
+	if len(userDto.TunnelAssigns) > 0 {
+		for _, tunnelAssign := range userDto.TunnelAssigns {
+			userTunnel := &models.UserTunnel{
+				UserID:        user.ID,
+				TunnelID:      tunnelAssign.TunnelID,
+				ExpTime:       tunnelAssign.ExpTime,
+				Flow:          tunnelAssign.Flow,
+				FlowResetTime: tunnelAssign.FlowResetTime,
+			}
+			// 忽略分配隧道时的错误，不影响用户创建
+			s.userTunnelRepo.Create(userTunnel)
+		}
+	}
+
+	return nil
 }
 
 // GetAllUsers 获取所有用户
@@ -175,7 +194,51 @@ func (s *UserService) UpdateUser(updateDto *dto.UserUpdateDto) error {
 		user.Status = *updateDto.Status
 	}
 
-	return s.repo.Update(user)
+	if err := s.repo.Update(user); err != nil {
+		return err
+	}
+
+	// 更新隧道权限
+	if len(updateDto.TunnelAssigns) > 0 {
+		// 获取用户当前的隧道权限
+		existingTunnels, _ := s.userTunnelRepo.FindByUserID(user.ID)
+		existingTunnelMap := make(map[uint]*models.UserTunnel)
+		for i := range existingTunnels {
+			existingTunnelMap[existingTunnels[i].TunnelID] = &existingTunnels[i]
+		}
+
+		// 处理新的隧道分配
+		newTunnelIDs := make(map[uint]bool)
+		for _, tunnelAssign := range updateDto.TunnelAssigns {
+			newTunnelIDs[tunnelAssign.TunnelID] = true
+			if existing, ok := existingTunnelMap[tunnelAssign.TunnelID]; ok {
+				// 更新现有权限
+				existing.ExpTime = tunnelAssign.ExpTime
+				existing.Flow = tunnelAssign.Flow
+				existing.FlowResetTime = tunnelAssign.FlowResetTime
+				s.userTunnelRepo.Update(existing)
+			} else {
+				// 创建新权限
+				userTunnel := &models.UserTunnel{
+					UserID:        user.ID,
+					TunnelID:      tunnelAssign.TunnelID,
+					ExpTime:       tunnelAssign.ExpTime,
+					Flow:          tunnelAssign.Flow,
+					FlowResetTime: tunnelAssign.FlowResetTime,
+				}
+				s.userTunnelRepo.Create(userTunnel)
+			}
+		}
+
+		// 删除不再需要的隧道权限
+		for tunnelID, existing := range existingTunnelMap {
+			if !newTunnelIDs[tunnelID] {
+				s.userTunnelRepo.Delete(existing.ID)
+			}
+		}
+	}
+
+	return nil
 }
 
 // DeleteUser 删除用户

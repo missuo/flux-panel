@@ -7,27 +7,37 @@ type LoginDto struct {
 	CaptchaId string `json:"captchaId"`
 }
 
+// TunnelAssignDto 隧道分配信息
+type TunnelAssignDto struct {
+	TunnelID      uint  `json:"tunnelId" binding:"required"`
+	Flow          int64 `json:"flow"`
+	ExpTime       int64 `json:"expTime"`
+	FlowResetTime int64 `json:"flowResetTime"`
+}
+
 // UserDto 创建用户请求
 type UserDto struct {
-	User          string `json:"user" binding:"required"`
-	Pwd           string `json:"pwd" binding:"required"`
-	Flow          int64  `json:"flow" binding:"required"`
-	Num           int    `json:"num" binding:"required"`
-	ExpTime       int64  `json:"expTime" binding:"required"`
-	FlowResetTime int64  `json:"flowResetTime" binding:"required"`
-	Status        *int   `json:"status"`
+	User          string            `json:"user" binding:"required"`
+	Pwd           string            `json:"pwd" binding:"required"`
+	Flow          int64             `json:"flow"`
+	Num           int               `json:"num"`
+	ExpTime       int64             `json:"expTime"`
+	FlowResetTime int64             `json:"flowResetTime"`
+	Status        *int              `json:"status"`
+	TunnelAssigns []TunnelAssignDto `json:"tunnelAssigns"` // 创建用户时分配的隧道
 }
 
 // UserUpdateDto 更新用户请求
 type UserUpdateDto struct {
-	ID            uint   `json:"id" binding:"required"`
-	User          string `json:"user" binding:"required"`
-	Pwd           string `json:"pwd"`
-	Flow          int64  `json:"flow" binding:"required"`
-	Num           int    `json:"num" binding:"required"`
-	ExpTime       int64  `json:"expTime" binding:"required"`
-	FlowResetTime int64  `json:"flowResetTime" binding:"required"`
-	Status        *int   `json:"status"`
+	ID            uint              `json:"id" binding:"required"`
+	User          string            `json:"user" binding:"required"`
+	Pwd           string            `json:"pwd"`
+	Flow          int64             `json:"flow"`
+	Num           int               `json:"num"`
+	ExpTime       int64             `json:"expTime"`
+	FlowResetTime int64             `json:"flowResetTime"`
+	Status        *int              `json:"status"`
+	TunnelAssigns []TunnelAssignDto `json:"tunnelAssigns"` // 更新用户时分配的隧道
 }
 
 // ChangePasswordDto 修改密码请求

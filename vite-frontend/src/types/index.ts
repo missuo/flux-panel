@@ -20,6 +20,15 @@ export interface User {
   outFlow?: number; // 上传流量(字节)
 }
 
+// 隧道分配信息
+export interface TunnelAssign {
+  tunnelId: number;
+  tunnelName?: string;
+  flow: number;
+  expTime: number;
+  flowResetTime: number;
+}
+
 export interface UserForm {
   id?: number;
   name?: string;
@@ -30,6 +39,7 @@ export interface UserForm {
   num: number;
   expTime: Date | null;
   flowResetTime: number;
+  tunnelAssigns: TunnelAssign[]; // 分配的隧道
 }
 
 export interface UserTunnel {
