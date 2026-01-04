@@ -222,6 +222,7 @@ typedef void (^FLXAPICompletionBlock)(NSDictionary *_Nullable response,
                            num:(NSInteger)num
                        expTime:(NSString *_Nullable)expTime
                  flowResetTime:(NSInteger)flowResetTime
+                        status:(NSInteger)status
                     completion:(FLXAPICompletionBlock)completion;
 
 // 更新用户
@@ -232,6 +233,7 @@ typedef void (^FLXAPICompletionBlock)(NSDictionary *_Nullable response,
                      num:(NSInteger)num
                  expTime:(NSString *_Nullable)expTime
            flowResetTime:(NSInteger)flowResetTime
+                  status:(NSInteger)status
               completion:(FLXAPICompletionBlock)completion;
 
 // 删除用户

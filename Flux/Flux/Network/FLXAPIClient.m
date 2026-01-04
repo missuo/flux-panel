@@ -638,13 +638,15 @@
                            num:(NSInteger)num
                        expTime:(NSString *)expTime
                  flowResetTime:(NSInteger)flowResetTime
+                        status:(NSInteger)status
                     completion:(FLXAPICompletionBlock)completion {
   NSMutableDictionary *params = [NSMutableDictionary dictionaryWithDictionary:@{
     @"username" : username,
     @"password" : password,
     @"flow" : @(flow),
     @"num" : @(num),
-    @"flowResetTime" : @(flowResetTime)
+    @"flowResetTime" : @(flowResetTime),
+    @"status" : @(status)
   }];
 
   if (expTime && expTime.length > 0) {
@@ -661,13 +663,15 @@
                      num:(NSInteger)num
                  expTime:(NSString *)expTime
            flowResetTime:(NSInteger)flowResetTime
+                  status:(NSInteger)status
               completion:(FLXAPICompletionBlock)completion {
   NSMutableDictionary *params = [NSMutableDictionary dictionaryWithDictionary:@{
     @"id" : @(userId),
     @"username" : username,
     @"flow" : @(flow),
     @"num" : @(num),
-    @"flowResetTime" : @(flowResetTime)
+    @"flowResetTime" : @(flowResetTime),
+    @"status" : @(status)
   }];
 
   if (password && password.length > 0) {

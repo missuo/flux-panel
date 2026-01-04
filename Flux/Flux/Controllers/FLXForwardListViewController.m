@@ -361,7 +361,8 @@
                                           handler:nil]];
 
   // iPad 适配
-  if (UI_USER_INTERFACE_IDIOM() == UIUserInterfaceIdiomPad) {
+  if ([[UIDevice currentDevice] userInterfaceIdiom] ==
+      UIUserInterfaceIdiomPad) {
     alert.popoverPresentationController.sourceView = self.tableView;
     alert.popoverPresentationController.permittedArrowDirections =
         UIPopoverArrowDirectionAny;
@@ -436,7 +437,8 @@
                                             style:UIAlertActionStyleCancel
                                           handler:nil]];
 
-  if (UI_USER_INTERFACE_IDIOM() == UIUserInterfaceIdiomPad) {
+  if ([[UIDevice currentDevice] userInterfaceIdiom] ==
+      UIUserInterfaceIdiomPad) {
     alert.popoverPresentationController.sourceView = self.view;
     alert.popoverPresentationController.sourceRect =
         CGRectMake(self.view.bounds.size.width / 2,

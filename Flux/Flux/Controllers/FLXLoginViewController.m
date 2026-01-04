@@ -317,44 +317,59 @@
   [self setLoading:YES];
 
   // 先检查验证码
-  [[FLXAPIClient sharedClient]
-      checkCaptchaWithCompletion:^(NSDictionary *response, NSError *error) {
-        if (error) {
-          [self setLoading:NO];
-          [self showAlertWithTitle:@"错误"
-                           message:@"网络错误，请检查服务器地址"];
-          return;
-        }
+  [[FLXAPIClient sharedClient] checkCaptchaWithCompletion:^(
+                                   NSDictionary *response, NSError *error) {
+    if (error) {
+      [self setLoading:NO];
+      [self showAlertWithTitle:@"错误" message:@"网络错误，请检查服务器地址"];
+      return;
+    }
 
-        NSInteger code = [response[@"code"] integerValue];
-        if (code != 0) {
-          [self setLoading:NO];
-          [self showAlertWithTitle:@"错误"
-                           message:response[@"msg"] ?: @"检查验证码状态失败"];
-          return;
-        }
+    NSInteger code = [response[@"code"] integerValue];
+    if (code != 0) {
+      [self setLoading:NO];
+      [self showAlertWithTitle:@"错误"
+                       message:response[@"msg"] ?: @"检查验证码状态失败"];
+      return;
+    }
 
-        // 检查是否需要验证码
-        // 新的返回格式可能是对象 { enabled: 1, type: "TURNSTILE", ... }
-        // 或者数字 0/1
-        BOOL captchaRequired = NO;
-        if ([response[@"data"] isKindOfClass:[NSDictionary class]]) {
-          NSDictionary *data = response[@"data"];
-          captchaRequired = [data[@"enabled"] integerValue] != 0;
-        } else {
-          captchaRequired = [response[@"data"] integerValue] != 0;
-        }
+    // 检查是否需要验证码
+    // 新的返回格式可能是对象 { enabled: 1, type: "TURNSTILE", ... }
+    // 或者数字 0/1
+    BOOL captchaRequired = NO;
+    if ([response[@"data"] isKindOfClass:[NSDictionary class]]) {
+      NSDictionary *data = response[@"data"];
+      captchaRequired = [data[@"enabled"] integerValue] != 0;
+    } else {
+      captchaRequired = [response[@"data"] integerValue] != 0;
+    }
 
-        if (captchaRequired) {
-          [self setLoading:NO];
-          // 需要验证码，打开 WebView 登录页面
-          [self showWebLogin];
-          return;
-        }
+    if (captchaRequired) {
+      [self setLoading:NO];
 
-        // 执行登录
-        [self performLoginWithUsername:username password:password];
-      }];
+      UIAlertController *alert = [UIAlertController
+          alertControllerWithTitle:@"提示"
+                           message:@"由于开启了 Cloudflare Turnstile "
+                                   @"即将跳转网页继续登录，是否继续"
+                    preferredStyle:UIAlertControllerStyleAlert];
+
+      [alert addAction:[UIAlertAction actionWithTitle:@"取消"
+                                                style:UIAlertActionStyleCancel
+                                              handler:nil]];
+
+      [alert addAction:[UIAlertAction actionWithTitle:@"继续"
+                                                style:UIAlertActionStyleDefault
+                                              handler:^(UIAlertAction *action) {
+                                                [self showWebLogin];
+                                              }]];
+
+      [self presentViewController:alert animated:YES completion:nil];
+      return;
+    }
+
+    // 执行登录
+    [self performLoginWithUsername:username password:password];
+  }];
 }
 
 - (void)performLoginWithUsername:(NSString *)username
@@ -461,7 +476,7 @@
   FLXWebLoginViewController *webLoginVC =
       [[FLXWebLoginViewController alloc] initWithServerURL:server];
   webLoginVC.delegate = self;
-  webLoginVC.modalPresentationStyle = UIModalPresentationFullScreen;
+  webLoginVC.modalPresentationStyle = UIModalPresentationPageSheet;
   [self presentViewController:webLoginVC animated:YES completion:nil];
 }
 

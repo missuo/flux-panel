@@ -189,8 +189,16 @@
     content.image = [UIImage systemImageNamed:@"person.badge.shield.checkmark"];
     content.imageProperties.tintColor = [UIColor systemOrangeColor];
   } else {
-    content.image = [UIImage systemImageNamed:@"person.fill"];
-    content.imageProperties.tintColor = [UIColor systemBlueColor];
+    // Check if user is disabled
+    if (user.status == 0) {
+      content.image = [UIImage systemImageNamed:@"person.fill.xmark"];
+      content.imageProperties.tintColor = [UIColor systemGrayColor];
+      content.textProperties.color = [UIColor secondaryLabelColor];
+      content.text = [NSString stringWithFormat:@"%@ (已禁用)", user.username];
+    } else {
+      content.image = [UIImage systemImageNamed:@"person.fill"];
+      content.imageProperties.tintColor = [UIColor systemBlueColor];
+    }
   }
 
   cell.contentConfiguration = content;
@@ -283,7 +291,8 @@
                                             style:UIAlertActionStyleCancel
                                           handler:nil]];
 
-  if (UI_USER_INTERFACE_IDIOM() == UIUserInterfaceIdiomPad) {
+  if ([[UIDevice currentDevice] userInterfaceIdiom] ==
+      UIUserInterfaceIdiomPad) {
     alert.popoverPresentationController.sourceView = self.tableView;
   }
 
@@ -301,8 +310,33 @@
                    user.isUnlimitedNum
                        ? @"无限制"
                        : [NSString stringWithFormat:@"%ld", (long)user.num]];
-  [details appendFormat:@"到期时间: %@\n", user.expTime ?: @"永久"];
-  [details appendFormat:@"流量重置日: 每月%ld日", (long)user.flowResetTime];
+
+  NSString *expTimeStr = @"永久";
+  long long expTimeMs = 0;
+
+  if (user.expTime) {
+    if ([user.expTime isKindOfClass:[NSString class]]) {
+      if ([(NSString *)user.expTime length] > 0) {
+        expTimeMs = [user.expTime longLongValue];
+      }
+    } else if ([user.expTime isKindOfClass:[NSNumber class]]) {
+      expTimeMs = [user.expTime longLongValue];
+    }
+  }
+
+  if (expTimeMs > 0) {
+    NSDate *expDate = [NSDate dateWithTimeIntervalSince1970:expTimeMs / 1000.0];
+    NSDateFormatter *formatter = [[NSDateFormatter alloc] init];
+    [formatter setDateFormat:@"yyyy-MM-dd HH:mm:ss"];
+    expTimeStr = [formatter stringFromDate:expDate];
+  }
+  [details appendFormat:@"到期时间: %@\n", expTimeStr];
+
+  NSString *resetDayStr =
+      user.flowResetTime == 0
+          ? @"不重置"
+          : [NSString stringWithFormat:@"每月%ld日", (long)user.flowResetTime];
+  [details appendFormat:@"流量重置日: %@", resetDayStr];
 
   [self showAlertWithTitle:@"用户详情" message:details];
 }

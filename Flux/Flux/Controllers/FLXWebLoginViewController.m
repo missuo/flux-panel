@@ -57,7 +57,7 @@
 
   // 标题
   self.titleLabel = [[UILabel alloc] init];
-  self.titleLabel.text = @"网页登录";
+  self.titleLabel.text = @"";
   self.titleLabel.font = [UIFont systemFontOfSize:17
                                            weight:UIFontWeightSemibold];
   self.titleLabel.textAlignment = NSTextAlignmentCenter;
@@ -111,9 +111,9 @@
     [headerView.heightAnchor constraintEqualToConstant:44],
 
     // Close button
-    [self.closeButton.leadingAnchor
-        constraintEqualToAnchor:headerView.leadingAnchor
-                       constant:16],
+    [self.closeButton.trailingAnchor
+        constraintEqualToAnchor:headerView.trailingAnchor
+                       constant:-16],
     [self.closeButton.centerYAnchor
         constraintEqualToAnchor:headerView.centerYAnchor],
 

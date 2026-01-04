@@ -23,6 +23,7 @@
 @property(nonatomic, assign) NSInteger num;           // 转发配额
 @property(nonatomic, assign) NSInteger expDays;       // 过期天数
 @property(nonatomic, assign) NSInteger flowResetTime; // 流量重置日期 (每月几号)
+@property(nonatomic, assign) NSInteger status;        // 状态 (0: 禁用, 1: 启用)
 
 // UI 控件
 @property(nonatomic, strong) UITextField *usernameTextField;
@@ -34,6 +35,7 @@
 @property(nonatomic, strong) UISwitch *unlimitedFlowSwitch;
 @property(nonatomic, strong) UISwitch *unlimitedNumSwitch;
 @property(nonatomic, strong) UISwitch *permanentSwitch;
+@property(nonatomic, strong) UISwitch *statusSwitch;
 
 @property(nonatomic, assign) BOOL isSaving;
 
@@ -51,6 +53,7 @@
     _num = 10;
     _expDays = 30;
     _flowResetTime = 1;
+    _status = 1;
   }
   return self;
 }
@@ -65,10 +68,34 @@
     _flow = user.flow;
     _num = user.num;
     _flowResetTime = user.flowResetTime;
+    _status = user.status;
 
     // 计算过期天数
-    if (user.expTime && user.expTime.length > 0) {
-      _expDays = 30; // 默认值
+    long long expTimeMs = 0;
+    if (user.expTime) {
+      if ([user.expTime isKindOfClass:[NSString class]] &&
+          [(NSString *)user.expTime length] > 0) {
+        expTimeMs = [user.expTime longLongValue];
+      } else if ([user.expTime isKindOfClass:[NSNumber class]]) {
+        expTimeMs = [user.expTime longLongValue];
+      }
+    }
+
+    if (expTimeMs > 0) {
+      NSTimeInterval expSec = expTimeMs / 1000.0;
+      NSDate *expDate = [NSDate dateWithTimeIntervalSince1970:expSec];
+      NSTimeInterval diff = [expDate timeIntervalSinceDate:[NSDate date]];
+      if (diff > 0) {
+        _expDays = (NSInteger)(diff / 86400.0);
+        if (_expDays == 0)
+          _expDays = 1;
+      } else {
+        _expDays = 0; // 已过期或马上过期，默认为0? 或者设置为1防止变成了无限?
+        // 如果已过期，用户可能想延期。
+        // 如果设为0，界面上会显示"永久"。这可能产生误导。
+        // 最好设为 30 (默认值) 让用户去改?
+        _expDays = 30;
+      }
     } else {
       _expDays = 0; // 永久
     }
@@ -187,7 +214,7 @@
 
   // 流量重置日期
   NSInteger flowResetTime = [self.flowResetTextField.text integerValue];
-  if (flowResetTime < 1 || flowResetTime > 28) {
+  if (flowResetTime < 0 || flowResetTime > 28) {
     flowResetTime = 1;
   }
 
@@ -208,6 +235,7 @@
                              ? [NSString stringWithFormat:@"%ld", (long)expTime]
                              : nil
            flowResetTime:flowResetTime
+                  status:self.status
               completion:^(NSDictionary *response, NSError *error) {
                 self.isSaving = NO;
                 self.navigationItem.rightBarButtonItem.enabled = YES;
@@ -236,6 +264,7 @@
                                          stringWithFormat:@"%ld", (long)expTime]
                                    : nil
                  flowResetTime:flowResetTime
+                        status:self.status
                     completion:^(NSDictionary *response, NSError *error) {
                       self.isSaving = NO;
                       self.navigationItem.rightBarButtonItem.enabled = YES;
@@ -277,7 +306,7 @@
     numberOfRowsInSection:(NSInteger)section {
   switch (section) {
   case 0:
-    return 2; // 用户名、密码
+    return 3; // 用户名、密码、状态
   case 1:
     return 4; // 流量配额、无限流量、转发配额、无限转发
   case 2:
@@ -307,7 +336,7 @@
   case 1:
     return @"99999 表示无限制";
   case 2:
-    return @"流量重置日为每月固定日期重置用户流量";
+    return @"流量重置日为每月固定日期重置用户流量，0 表示不重置";
   default:
     return nil;
   }
@@ -339,7 +368,7 @@
       }
       cell.accessoryView = self.usernameTextField;
 
-    } else {
+    } else if (indexPath.row == 1) {
       // 密码
       cell.textLabel.text = self.isEditing ? @"新密码" : @"密码";
 
@@ -356,6 +385,18 @@
         self.passwordTextField.returnKeyType = UIReturnKeyNext;
       }
       cell.accessoryView = self.passwordTextField;
+    } else {
+      // 状态
+      cell.textLabel.text = @"启用账户";
+
+      if (!self.statusSwitch) {
+        self.statusSwitch = [[UISwitch alloc] init];
+        self.statusSwitch.on = (self.status == 1);
+        [self.statusSwitch addTarget:self
+                              action:@selector(statusSwitchChanged:)
+                    forControlEvents:UIControlEventValueChanged];
+      }
+      cell.accessoryView = self.statusSwitch;
     }
   } else if (indexPath.section == 1) {
     if (indexPath.row == 0) {
@@ -498,6 +539,10 @@
   if (sender.isOn) {
     self.expDaysTextField.text = @"";
   }
+}
+
+- (void)statusSwitchChanged:(UISwitch *)sender {
+  self.status = sender.isOn ? 1 : 0;
 }
 
 #pragma mark - UITextFieldDelegate

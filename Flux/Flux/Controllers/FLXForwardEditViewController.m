@@ -474,7 +474,8 @@
                                             style:UIAlertActionStyleCancel
                                           handler:nil]];
 
-  if (UI_USER_INTERFACE_IDIOM() == UIUserInterfaceIdiomPad) {
+  if ([[UIDevice currentDevice] userInterfaceIdiom] ==
+      UIUserInterfaceIdiomPad) {
     alert.popoverPresentationController.sourceView = self.tunnelButton;
     alert.popoverPresentationController.sourceRect = self.tunnelButton.bounds;
   }
