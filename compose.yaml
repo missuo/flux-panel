@@ -48,12 +48,6 @@ services:
         condition: service_healthy
     networks:
       - flux-panel-network
-    healthcheck:
-      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://localhost:6365/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 5
-      start_period: 60s
 
   frontend:
     image: ghcr.io/missuo/flux-panel-frontend:latest
@@ -62,15 +56,9 @@ services:
     ports:
       - "${FRONTEND_PORT:-80}:80"
     depends_on:
-      backend:
-        condition: service_healthy
+      - backend
     networks:
       - flux-panel-network
-    healthcheck:
-      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://localhost:80"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
 
 volumes:
   mysql_data:
