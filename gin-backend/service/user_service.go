@@ -384,7 +384,7 @@ func (s *UserService) GetUserPackageInfo(userID uint) (*dto.UserDashboardRespons
 			Flow:          ut.Flow,
 			InFlow:        ut.InFlow,
 			OutFlow:       ut.OutFlow,
-			Num:           0,
+			Num:           ut.Num,
 			ExpTime:       ut.ExpTime,
 			FlowResetTime: ut.FlowResetTime,
 			TunnelFlow:    tunnelFlow,
