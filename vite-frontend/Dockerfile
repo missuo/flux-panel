@@ -6,8 +6,8 @@ WORKDIR /app
 # 只复制 package 文件用于缓存依赖
 COPY package*.json ./
 
-# 使用 ci 安装依赖（更快更一致）并清理缓存
-RUN npm ci && npm cache clean --force
+# 安装依赖并清理缓存
+RUN npm install && npm cache clean --force
 
 # 复制源代码并构建
 COPY . .
