@@ -54,6 +54,11 @@ type ResetFlowDto struct {
 	Type int  `json:"type" binding:"required"`
 }
 
+// ToggleUserStatusDto 切换用户状态请求
+type ToggleUserStatusDto struct {
+	ID uint `json:"id" binding:"required"`
+}
+
 // UserPackageDto 用户套餐信息响应
 type UserPackageDto struct {
 	User          string `json:"user"`

@@ -54,6 +54,7 @@ func SetupRouter() *gin.Engine {
 					adminUser.POST("/update", userHandler.UpdateUser)
 					adminUser.POST("/delete", userHandler.DeleteUser)
 					adminUser.POST("/reset", userHandler.ResetFlow)
+					adminUser.POST("/toggle-status", userHandler.ToggleUserStatus)
 				}
 			}
 		}

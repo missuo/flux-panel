@@ -41,6 +41,7 @@ import {
   createUser,
   updateUser,
   deleteUser,
+  toggleUserStatus,
   getTunnelList,
   assignUserTunnel,
   getUserTunnelList,
@@ -130,9 +131,9 @@ export default function UserPage() {
   const [userFormLoading, setUserFormLoading] = useState(false);
   const [tunnelAssignsLoading, setTunnelAssignsLoading] = useState(false);
 
-  // 隧道权限管理相关状态
-  const { isOpen: isTunnelModalOpen, onOpen: onTunnelModalOpen, onClose: onTunnelModalClose } = useDisclosure();
-  const [currentUser, setCurrentUser] = useState<User | null>(null);
+  // 隧道权限管理相关状态（高级管理弹窗 - 暂未启用）
+  const { isOpen: isTunnelModalOpen, onOpen: _onTunnelModalOpen, onClose: onTunnelModalClose } = useDisclosure();
+  const [currentUser, _setCurrentUser] = useState<User | null>(null);
   const [userTunnels, setUserTunnels] = useState<UserTunnel[]>([]);
   const [tunnelListLoading, setTunnelListLoading] = useState(false);  
   
@@ -535,6 +536,24 @@ export default function UserPage() {
     }
   };
 
+  // 切换用户状态
+  const handleToggleUserStatus = async (user: User) => {
+    try {
+      const response = await toggleUserStatus(user.id);
+      if (response.code === 0) {
+        toast.success(user.status === 1 ? '用户已禁用' : '用户已启用');
+        // 更新本地用户列表
+        setUsers(prev => prev.map(u => 
+          u.id === user.id ? { ...u, status: u.status === 1 ? 0 : 1 } : u
+        ));
+      } else {
+        toast.error(response.msg || '操作失败');
+      }
+    } catch (error) {
+      toast.error('操作失败');
+    }
+  };
+
   // 过滤数据
   const availableTunnels = tunnels.filter(
     tunnel => !userTunnels.some(ut => ut.tunnelId === tunnel.id)
@@ -731,17 +750,39 @@ export default function UserPage() {
                       </Button>
                     </div>
                     
-                    {/* 删除按钮 */}
-                    <Button
-                      size="sm"
-                      variant="flat"
-                      color="danger"
-                      onPress={() => handleDelete(user)}
-                      className="flex-1 min-h-8"
-                      startContent={<DeleteIcon className="w-3 h-3" />}
-                    >
-                      删除
-                    </Button>
+                    {/* 第二行：禁用/启用和删除 */}
+                    <div className="flex gap-1.5">
+                      <Button
+                        size="sm"
+                        variant="flat"
+                        color={user.status === 1 ? "secondary" : "success"}
+                        onPress={() => handleToggleUserStatus(user)}
+                        className="flex-1 min-h-8"
+                        startContent={
+                          user.status === 1 ? (
+                            <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                              <path fillRule="evenodd" d="M13.477 14.89A6 6 0 015.11 6.524l8.367 8.368zm1.414-1.414L6.524 5.11a6 6 0 018.367 8.367zM18 10a8 8 0 11-16 0 8 8 0 0116 0z" clipRule="evenodd" />
+                            </svg>
+                          ) : (
+                            <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                              <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                            </svg>
+                          )
+                        }
+                      >
+                        {user.status === 1 ? '禁用' : '启用'}
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="flat"
+                        color="danger"
+                        onPress={() => handleDelete(user)}
+                        className="flex-1 min-h-8"
+                        startContent={<DeleteIcon className="w-3 h-3" />}
+                      >
+                        删除
+                      </Button>
+                    </div>
                   </div>
                 </CardBody>
               </Card>
@@ -854,32 +895,6 @@ export default function UserPage() {
             <div className="mt-6">
               <div className="flex justify-between items-center mb-3">
                 <h4 className="text-sm font-medium">分配隧道权限</h4>
-                {isEdit && userForm.id && (
-                  <Button
-                    size="sm"
-                    variant="light"
-                    color="primary"
-                    onPress={() => {
-                      // 设置 currentUser 并打开高级管理弹窗
-                      const user = users.find(u => u.id === userForm.id);
-                      if (user) {
-                        setCurrentUser(user);
-                        setTunnelForm({
-                          tunnelId: null,
-                          flow: 100,
-                          num: 10,
-                          expTime: null,
-                          flowResetTime: 0,
-                          speedId: null
-                        });
-                        onTunnelModalOpen();
-                        loadUserTunnels(user.id);
-                      }
-                    }}
-                  >
-                    编辑权限资料
-                  </Button>
-                )}
               </div>
               
               {/* 添加隧道 */}

@@ -400,3 +400,31 @@ func (s *UserService) ResetFlow(resetDto *dto.ResetFlowDto) error {
 	// Type == 2: 清零隧道流量 - 暂不实现
 	return nil
 }
+
+// ToggleUserStatus 切换用户状态
+func (s *UserService) ToggleUserStatus(toggleDto *dto.ToggleUserStatusDto) (*models.User, error) {
+	user, err := s.repo.FindByID(toggleDto.ID)
+	if err != nil {
+		return nil, errors.New("用户不存在")
+	}
+
+	// 不能修改管理员状态
+	if user.RoleID == 0 {
+		return nil, errors.New("不能修改管理员用户状态")
+	}
+
+	// 切换状态
+	if user.Status == 1 {
+		user.Status = 0
+	} else {
+		user.Status = 1
+	}
+
+	if err := s.repo.Update(user); err != nil {
+		return nil, err
+	}
+
+	// 清空密码后返回
+	user.Pwd = ""
+	return user, nil
+}

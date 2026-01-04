@@ -166,3 +166,20 @@ func (h *UserHandler) ResetFlow(c *gin.Context) {
 
 	utils.Success(c, nil)
 }
+
+// ToggleUserStatus 切换用户状态
+func (h *UserHandler) ToggleUserStatus(c *gin.Context) {
+	var toggleDto dto.ToggleUserStatusDto
+	if err := c.ShouldBindJSON(&toggleDto); err != nil {
+		utils.Error(c, "参数错误")
+		return
+	}
+
+	user, err := h.service.ToggleUserStatus(&toggleDto)
+	if err != nil {
+		utils.Error(c, err.Error())
+		return
+	}
+
+	utils.Success(c, user)
+}
