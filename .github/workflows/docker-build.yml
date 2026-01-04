@@ -10,7 +10,7 @@ env:
 jobs:
   build-vite:
     name: Build & Push Vite Frontend
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     permissions:
       contents: read
       packages: write
@@ -54,7 +54,7 @@ jobs:
 
   build-gin:
     name: Build & Push Gin Backend
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     permissions:
       contents: read
       packages: write
