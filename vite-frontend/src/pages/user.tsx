@@ -49,7 +49,7 @@ import {
   getSpeedLimitList,
   resetUserFlow
 } from '@/api';
-import { SearchIcon, EditIcon, DeleteIcon, UserIcon, SettingsIcon } from '@/components/icons';
+import { SearchIcon, EditIcon, DeleteIcon, UserIcon } from '@/components/icons';
 import { parseDate } from "@internationalized/date";
 
 
@@ -128,6 +128,7 @@ export default function UserPage() {
     tunnelAssigns: []
   });
   const [userFormLoading, setUserFormLoading] = useState(false);
+  const [tunnelAssignsLoading, setTunnelAssignsLoading] = useState(false);
 
   // 隧道权限管理相关状态
   const { isOpen: isTunnelModalOpen, onOpen: onTunnelModalOpen, onClose: onTunnelModalClose } = useDisclosure();
@@ -243,6 +244,7 @@ export default function UserPage() {
 
   // 为编辑用户加载已分配的隧道
   const loadUserTunnelsForEdit = async (userId: number) => {
+    setTunnelAssignsLoading(true);
     try {
       const response = await getUserTunnelList({ userId });
       if (response.code === 0) {
@@ -257,6 +259,8 @@ export default function UserPage() {
       }
     } catch (error) {
       console.error('获取用户隧道权限失败:', error);
+    } finally {
+      setTunnelAssignsLoading(false);
     }
   };
 
@@ -364,20 +368,6 @@ export default function UserPage() {
   };
 
   // 隧道权限管理操作
-  const handleManageTunnels = (user: User) => {
-    setCurrentUser(user);
-    setTunnelForm({
-      tunnelId: null,
-      flow: 100,
-      num: 10,
-      expTime: null,
-      flowResetTime: 0,
-      speedId: null
-    });
-    onTunnelModalOpen();
-    loadUserTunnels(user.id);
-  };
-
   const handleAssignTunnel = async () => {
     if (!tunnelForm.tunnelId || !tunnelForm.expTime || !currentUser) {
       toast.error('请填写完整信息');
@@ -741,29 +731,17 @@ export default function UserPage() {
                       </Button>
                     </div>
                     
-                    {/* 第二行：权限和删除 */}
-                    <div className="flex gap-1.5">
-                      <Button
-                        size="sm"
-                        variant="flat"
-                        color="success"
-                        onPress={() => handleManageTunnels(user)}
-                        className="flex-1 min-h-8"
-                        startContent={<SettingsIcon className="w-3 h-3" />}
-                      >
-                        权限
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="flat"
-                        color="danger"
-                        onPress={() => handleDelete(user)}
-                        className="flex-1 min-h-8"
-                        startContent={<DeleteIcon className="w-3 h-3" />}
-                      >
-                        删除
-                      </Button>
-                    </div>
+                    {/* 删除按钮 */}
+                    <Button
+                      size="sm"
+                      variant="flat"
+                      color="danger"
+                      onPress={() => handleDelete(user)}
+                      className="flex-1 min-h-8"
+                      startContent={<DeleteIcon className="w-3 h-3" />}
+                    >
+                      删除
+                    </Button>
                   </div>
                 </CardBody>
               </Card>
@@ -874,7 +852,35 @@ export default function UserPage() {
 
             {/* 隧道权限分配 */}
             <div className="mt-6">
-              <h4 className="text-sm font-medium mb-3">分配隧道权限</h4>
+              <div className="flex justify-between items-center mb-3">
+                <h4 className="text-sm font-medium">分配隧道权限</h4>
+                {isEdit && userForm.id && (
+                  <Button
+                    size="sm"
+                    variant="light"
+                    color="primary"
+                    onPress={() => {
+                      // 设置 currentUser 并打开高级管理弹窗
+                      const user = users.find(u => u.id === userForm.id);
+                      if (user) {
+                        setCurrentUser(user);
+                        setTunnelForm({
+                          tunnelId: null,
+                          flow: 100,
+                          num: 10,
+                          expTime: null,
+                          flowResetTime: 0,
+                          speedId: null
+                        });
+                        onTunnelModalOpen();
+                        loadUserTunnels(user.id);
+                      }
+                    }}
+                  >
+                    编辑权限资料
+                  </Button>
+                )}
+              </div>
               
               {/* 添加隧道 */}
               <div className="flex gap-2 mb-3">
@@ -1002,7 +1008,14 @@ export default function UserPage() {
                 </div>
               )}
               
-              {userForm.tunnelAssigns.length === 0 && (
+              {tunnelAssignsLoading && (
+                <div className="flex items-center justify-center py-4">
+                  <Spinner size="sm" />
+                  <span className="ml-2 text-sm text-default-500">正在加载隧道权限...</span>
+                </div>
+              )}
+              
+              {!tunnelAssignsLoading && userForm.tunnelAssigns.length === 0 && (
                 <p className="text-sm text-default-500 text-center py-4">
                   暂未分配隧道权限，请从上方选择隧道添加
                 </p>
