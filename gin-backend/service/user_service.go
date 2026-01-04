@@ -137,8 +137,12 @@ func (s *UserService) CreateUser(userDto *dto.UserDto) error {
 				Flow:          tunnelAssign.Flow,
 				FlowResetTime: tunnelAssign.FlowResetTime,
 			}
-			// 忽略分配隧道时的错误，不影响用户创建
-			s.userTunnelRepo.Create(userTunnel)
+			userTunnel.Status = 1 // 默认启用
+
+			// 如果分配失败，返回错误
+			if err := s.userTunnelRepo.Create(userTunnel); err != nil {
+				return errors.New("分配隧道权限失败: " + err.Error())
+			}
 		}
 	}
 
@@ -226,7 +230,10 @@ func (s *UserService) UpdateUser(updateDto *dto.UserUpdateDto) error {
 					Flow:          tunnelAssign.Flow,
 					FlowResetTime: tunnelAssign.FlowResetTime,
 				}
-				s.userTunnelRepo.Create(userTunnel)
+				userTunnel.Status = 1 // 默认启用
+				if err := s.userTunnelRepo.Create(userTunnel); err != nil {
+					return errors.New("分配隧道权限失败: " + err.Error())
+				}
 			}
 		}
 
