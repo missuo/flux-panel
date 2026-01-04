@@ -101,13 +101,6 @@ jobs:
           gh release upload "${VERSION}" ./artifacts/gost-amd64 --clobber
           gh release upload "${VERSION}" ./artifacts/gost-arm64 --clobber
           
-          echo "📤 上传安装脚本..."
-          gh release upload "${VERSION}" ./install.sh --clobber
-          gh release upload "${VERSION}" ./panel_install.sh --clobber
-          
-          echo "📤 上传 Docker Compose 配置文件..."
-          gh release upload "${VERSION}" ./compose.yaml --clobber
-          
           echo "📤 上传数据库初始化文件..."
           gh release upload "${VERSION}" ./gost.sql --clobber
           
