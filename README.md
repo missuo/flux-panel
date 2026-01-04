@@ -18,16 +18,15 @@ It leverages [go-gost/gost](https://github.com/go-gost/gost) and [go-gost/x](htt
 
 ### Docker Compose Deployment
 
-#### Quick Start
+#### Panel
 
-**Panel (Stable):**
 ```bash
-curl -L https://raw.githubusercontent.com/missuo/flux-panel/refs/heads/main/panel_install.sh -o panel_install.sh && chmod +x panel_install.sh && ./panel_install.sh
-```
-
-**Node (Stable):**
-```bash
-curl -L https://raw.githubusercontent.com/missuo/flux-panel/refs/heads/main/install.sh -o install.sh && chmod +x install.sh && ./install.sh
+mkdir flux-panel && cd flux-panel
+wget https://raw.githubusercontent.com/missuo/flux-panel/refs/heads/main/compose.yaml
+wget https://raw.githubusercontent.com/missuo/flux-panel/refs/heads/main/.env.example -O .env
+sed -i "s/DB_PASSWORD=.*/DB_PASSWORD=$(openssl rand -base64 32 | tr -dc 'a-zA-Z0-9' | head -c 32)/" .env
+sed -i "s/JWT_SECRET=.*/JWT_SECRET=$(openssl rand -base64 32 | tr -dc 'a-zA-Z0-9' | head -c 32)/" .env
+docker compose up -d
 ```
 
 #### Default Administrator Account
