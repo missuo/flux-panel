@@ -13,6 +13,7 @@ type TunnelAssignDto struct {
 	Flow          int64 `json:"flow"`
 	ExpTime       int64 `json:"expTime"`
 	FlowResetTime int64 `json:"flowResetTime"`
+	Num           int   `json:"num"`
 }
 
 // UserDto 创建用户请求

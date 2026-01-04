@@ -36,6 +36,7 @@ type UserTunnelDto struct {
 	ExpTime       int64 `json:"expTime"`
 	Flow          int64 `json:"flow"`
 	FlowResetTime int64 `json:"flowResetTime"` // 0表示不重置
+	Num           int   `json:"num"`
 }
 
 // UserTunnelQueryDto 查询用户隧道请求
@@ -50,6 +51,7 @@ type UserTunnelUpdateDto struct {
 	ExpTime       *int64 `json:"expTime"`
 	Flow          *int64 `json:"flow"`
 	FlowResetTime *int64 `json:"flowResetTime"`
+	Num           *int   `json:"num"`
 }
 
 // UserTunnelResponseDto 用户隧道权限响应
@@ -63,5 +65,6 @@ type UserTunnelResponseDto struct {
 	InFlow        int64  `json:"inFlow"`
 	OutFlow       int64  `json:"outFlow"`
 	FlowResetTime int64  `json:"flowResetTime"`
+	Num           int    `json:"num"`
 	SpeedID       int    `json:"speedId"`
 }

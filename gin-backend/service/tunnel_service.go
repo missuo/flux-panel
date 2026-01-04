@@ -29,6 +29,7 @@ type TunnelService struct {
 	userTunnelRepo *repository.UserTunnelRepository
 	nodeRepo       *repository.NodeRepository
 	forwardRepo    *repository.ForwardRepository
+	userRepo       *repository.UserRepository
 }
 
 func NewTunnelService(db *gorm.DB) *TunnelService {
@@ -37,6 +38,7 @@ func NewTunnelService(db *gorm.DB) *TunnelService {
 		userTunnelRepo: repository.NewUserTunnelRepository(db),
 		nodeRepo:       repository.NewNodeRepository(db),
 		forwardRepo:    repository.NewForwardRepository(db),
+		userRepo:       repository.NewUserRepository(db),
 	}
 }
 
@@ -294,12 +296,36 @@ func (s *TunnelService) AssignUserTunnel(assignDto *dto.UserTunnelDto) error {
 		return errors.New("用户已拥有该隧道权限")
 	}
 
+	// 获取用户信息以获取默认配置
+	user, err := s.userRepo.FindByID(assignDto.UserID)
+	if err != nil {
+		return errors.New("用户不存在")
+	}
+
+	expTime := assignDto.ExpTime
+	if expTime == 0 {
+		expTime = user.ExpTime
+	}
+	flow := assignDto.Flow
+	if flow == 0 {
+		flow = user.Flow
+	}
+	flowResetTime := assignDto.FlowResetTime
+	if flowResetTime == 0 {
+		flowResetTime = user.FlowResetTime
+	}
+	num := assignDto.Num
+	if num == 0 {
+		num = user.Num
+	}
+
 	userTunnel := &models.UserTunnel{
 		UserID:        assignDto.UserID,
 		TunnelID:      assignDto.TunnelID,
-		ExpTime:       assignDto.ExpTime,
-		Flow:          assignDto.Flow,
-		FlowResetTime: assignDto.FlowResetTime,
+		ExpTime:       expTime,
+		Flow:          flow,
+		FlowResetTime: flowResetTime,
+		Num:           num,
 	}
 	userTunnel.Status = 1 // 默认启用
 
@@ -349,6 +375,7 @@ func (s *TunnelService) GetUserTunnelList(queryDto *dto.UserTunnelQueryDto) ([]d
 			InFlow:        ut.InFlow,
 			OutFlow:       ut.OutFlow,
 			FlowResetTime: ut.FlowResetTime,
+			Num:           ut.Num,
 			SpeedID:       ut.SpeedID,
 		})
 	}
@@ -376,6 +403,9 @@ func (s *TunnelService) UpdateUserTunnel(updateDto *dto.UserTunnelUpdateDto) err
 	}
 	if updateDto.FlowResetTime != nil {
 		userTunnel.FlowResetTime = *updateDto.FlowResetTime
+	}
+	if updateDto.Num != nil {
+		userTunnel.Num = *updateDto.Num
 	}
 
 	return s.userTunnelRepo.Update(userTunnel)

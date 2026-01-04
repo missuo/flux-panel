@@ -130,12 +130,31 @@ func (s *UserService) CreateUser(userDto *dto.UserDto) error {
 	// 分配隧道权限
 	if len(userDto.TunnelAssigns) > 0 {
 		for _, tunnelAssign := range userDto.TunnelAssigns {
+			// 处理默认值：如果未指定，复用用户的配置
+			expTime := tunnelAssign.ExpTime
+			if expTime == 0 {
+				expTime = user.ExpTime
+			}
+			flow := tunnelAssign.Flow
+			if flow == 0 {
+				flow = user.Flow
+			}
+			flowResetTime := tunnelAssign.FlowResetTime
+			if flowResetTime == 0 {
+				flowResetTime = user.FlowResetTime
+			}
+			num := tunnelAssign.Num
+			if num == 0 {
+				num = user.Num
+			}
+
 			userTunnel := &models.UserTunnel{
 				UserID:        user.ID,
 				TunnelID:      tunnelAssign.TunnelID,
-				ExpTime:       tunnelAssign.ExpTime,
-				Flow:          tunnelAssign.Flow,
-				FlowResetTime: tunnelAssign.FlowResetTime,
+				ExpTime:       expTime,
+				Flow:          flow,
+				FlowResetTime: flowResetTime,
+				Num:           num,
 			}
 			userTunnel.Status = 1 // 默认启用
 
@@ -220,15 +239,35 @@ func (s *UserService) UpdateUser(updateDto *dto.UserUpdateDto) error {
 				existing.ExpTime = tunnelAssign.ExpTime
 				existing.Flow = tunnelAssign.Flow
 				existing.FlowResetTime = tunnelAssign.FlowResetTime
+				existing.Num = tunnelAssign.Num
 				s.userTunnelRepo.Update(existing)
 			} else {
 				// 创建新权限
+				// 处理默认值：如果未指定，复用用户的配置
+				expTime := tunnelAssign.ExpTime
+				if expTime == 0 {
+					expTime = user.ExpTime
+				}
+				flow := tunnelAssign.Flow
+				if flow == 0 {
+					flow = user.Flow
+				}
+				flowResetTime := tunnelAssign.FlowResetTime
+				if flowResetTime == 0 {
+					flowResetTime = user.FlowResetTime
+				}
+				num := tunnelAssign.Num
+				if num == 0 {
+					num = user.Num
+				}
+
 				userTunnel := &models.UserTunnel{
 					UserID:        user.ID,
 					TunnelID:      tunnelAssign.TunnelID,
-					ExpTime:       tunnelAssign.ExpTime,
-					Flow:          tunnelAssign.Flow,
-					FlowResetTime: tunnelAssign.FlowResetTime,
+					ExpTime:       expTime,
+					Flow:          flow,
+					FlowResetTime: flowResetTime,
+					Num:           num,
 				}
 				userTunnel.Status = 1 // 默认启用
 				if err := s.userTunnelRepo.Create(userTunnel); err != nil {
