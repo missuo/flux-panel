@@ -8,8 +8,8 @@ export LC_ALL=C
 
 
 # 全局下载地址配置
-DOCKER_COMPOSE_URL="https://github.com/missuo/flux-panel/releases/download/v1.5.5/compose.yaml"
-GOST_SQL_URL="https://github.com/missuo/flux-panel/releases/download/v1.5.5/gost.sql"
+DOCKER_COMPOSE_URL="https://github.com/missuo/flux-panel/releases/download/v1.5.6/compose.yaml"
+GOST_SQL_URL="https://github.com/missuo/flux-panel/releases/download/v1.5.6/gost.sql"
 
 COUNTRY=$(curl -s https://ipinfo.io/country)
 if [ "$COUNTRY" = "CN" ]; then
