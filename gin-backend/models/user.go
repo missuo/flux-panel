@@ -12,7 +12,7 @@ type User struct {
 	OutFlow       int64  `gorm:"column:out_flow;default:0" json:"outFlow"`    // 已用出流量
 	Num           int    `gorm:"column:num;default:0" json:"num"`             // 隧道数量限制
 	FlowResetTime int64  `gorm:"column:flow_reset_time" json:"flowResetTime"` // 流量重置时间
-	Status        int    `gorm:"column:status;default:1" json:"status"`       // 0: 停用, 1: 启用
+	Status        int    `gorm:"column:status;default:1" json:"status"`       // -1: 删除, 0: 禁用, 1: 启用
 }
 
 // TableName 指定表名

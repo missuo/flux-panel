@@ -331,8 +331,8 @@ func (s *TunnelService) GetUserTunnelList(queryDto *dto.UserTunnelQueryDto) ([]d
 		tunnelMap[t.ID] = t.Name
 	}
 
-	// 转换为 DTO
-	var responseDtos []dto.UserTunnelResponseDto
+	// 转换为 DTO（使用 make 确保返回空数组而非 null）
+	responseDtos := make([]dto.UserTunnelResponseDto, 0)
 	for _, ut := range userTunnels {
 		tunnelName := "未知隧道"
 		if name, ok := tunnelMap[ut.TunnelID]; ok {

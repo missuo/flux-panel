@@ -228,6 +228,12 @@ export default function UserPage() {
   };
 
   const loadUserTunnels = async (userId: number) => {
+    // 参数检查，确保userId有效
+    if (!userId || typeof userId !== 'number') {
+      console.error('loadUserTunnels: 无效的userId', userId);
+      return;
+    }
+    
     setTunnelListLoading(true);
     try {
       const response = await getUserTunnelList({ userId });
@@ -245,6 +251,13 @@ export default function UserPage() {
 
   // 为编辑用户加载已分配的隧道
   const loadUserTunnelsForEdit = async (userId: number) => {
+    // 参数检查，确保userId有效
+    if (!userId || typeof userId !== 'number') {
+      console.error('loadUserTunnelsForEdit: 无效的userId', userId);
+      toast.error('无法加载权限：用户ID无效');
+      return;
+    }
+    
     setTunnelAssignsLoading(true);
     try {
       const response = await getUserTunnelList({ userId });
@@ -286,7 +299,16 @@ export default function UserPage() {
     onUserModalOpen();
   };
 
+
   const handleEdit = (user: User) => {
+    // 调试日志：检查用户对象
+    console.log('handleEdit user:', user);
+    if (!user || !user.id) {
+      console.error('handleEdit: 用户对象无效或缺少ID', user);
+      toast.error('无法编辑：用户数据无效');
+      return;
+    }
+
     setIsEdit(true);
     setUserForm({
       id: user.id,
