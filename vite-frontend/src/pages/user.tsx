@@ -267,7 +267,8 @@ export default function UserPage() {
           tunnelName: ut.tunnelName,
           flow: ut.flow,
           expTime: ut.expTime,
-          flowResetTime: ut.flowResetTime
+          flowResetTime: ut.flowResetTime,
+          num: ut.num
         }));
         setUserForm(prev => ({ ...prev, tunnelAssigns }));
       }
@@ -940,7 +941,8 @@ export default function UserPage() {
                       tunnelName: selectedTunnel?.name || '',
                       flow: userForm.flow, // 默认使用用户流量
                       expTime: userForm.expTime ? userForm.expTime.getTime() : Date.now() + 30 * 24 * 60 * 60 * 1000,
-                      flowResetTime: userForm.flowResetTime
+                      flowResetTime: userForm.flowResetTime,
+                      num: userForm.num // 默认使用用户转发数量
                     };
                     setUserForm(prev => ({
                       ...prev,
@@ -983,9 +985,9 @@ export default function UserPage() {
                           <DeleteIcon className="w-4 h-4" />
                         </Button>
                       </div>
-                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                         <Input
-                          label="流量(GB)"
+                          label="流量(GB, 0=继承)"
                           type="number"
                           size="sm"
                           value={ta.flow.toString()}
@@ -999,12 +1001,27 @@ export default function UserPage() {
                             }));
                           }}
                         />
+                        <Input
+                          label="转发数量 (0=继承)"
+                          type="number"
+                          size="sm"
+                          value={ta.num.toString()}
+                          onChange={(e) => {
+                            const value = Math.max(Number(e.target.value) || 0, 0);
+                            setUserForm(prev => ({
+                              ...prev,
+                              tunnelAssigns: prev.tunnelAssigns.map((item, i) =>
+                                i === index ? { ...item, num: value } : item
+                              )
+                            }));
+                          }}
+                        />
                         <Select
                           label="重置日期"
                           size="sm"
-                          selectedKeys={[ta.flowResetTime.toString()]}
+                          selectedKeys={ta.flowResetTime ? [ta.flowResetTime.toString()] : ["0"]}
                           onSelectionChange={(keys) => {
-                            const value = Number(Array.from(keys)[0]);
+                             const value = Number(Array.from(keys)[0]);
                             setUserForm(prev => ({
                               ...prev,
                               tunnelAssigns: prev.tunnelAssigns.map((item, i) =>

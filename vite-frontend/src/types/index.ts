@@ -27,6 +27,7 @@ export interface TunnelAssign {
   flow: number;
   expTime: number;
   flowResetTime: number;
+  num: number;
 }
 
 export interface UserForm {

@@ -236,10 +236,38 @@ func (s *UserService) UpdateUser(updateDto *dto.UserUpdateDto) error {
 			newTunnelIDs[tunnelAssign.TunnelID] = true
 			if existing, ok := existingTunnelMap[tunnelAssign.TunnelID]; ok {
 				// 更新现有权限
-				existing.ExpTime = tunnelAssign.ExpTime
-				existing.Flow = tunnelAssign.Flow
-				existing.FlowResetTime = tunnelAssign.FlowResetTime
-				existing.Num = tunnelAssign.Num
+				if existing.ExpTime == 0 || tunnelAssign.ExpTime != 0 {
+					expTime := tunnelAssign.ExpTime
+					if expTime == 0 {
+						expTime = user.ExpTime
+					}
+					existing.ExpTime = expTime
+				}
+
+				if existing.Flow == 0 || tunnelAssign.Flow != 0 {
+					flow := tunnelAssign.Flow
+					if flow == 0 {
+						flow = user.Flow
+					}
+					existing.Flow = flow
+				}
+
+				if existing.FlowResetTime == 0 || tunnelAssign.FlowResetTime != 0 {
+					flowResetTime := tunnelAssign.FlowResetTime
+					if flowResetTime == 0 {
+						flowResetTime = user.FlowResetTime
+					}
+					existing.FlowResetTime = flowResetTime
+				}
+
+				if existing.Num == 0 || tunnelAssign.Num != 0 {
+					num := tunnelAssign.Num
+					if num == 0 {
+						num = user.Num
+					}
+					existing.Num = num
+				}
+
 				s.userTunnelRepo.Update(existing)
 			} else {
 				// 创建新权限
