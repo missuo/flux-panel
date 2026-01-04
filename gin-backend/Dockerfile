@@ -3,8 +3,8 @@ FROM golang:1.23-alpine AS builder
 
 WORKDIR /app
 
-# 安装 upx 用于压缩二进制文件
-RUN apk add --no-cache upx
+# 安装 upx 用于压缩二进制文件，以及 tzdata 用于时区支持
+RUN apk add --no-cache upx tzdata
 
 # 复制 go.mod 和 go.sum
 COPY go.mod go.sum ./

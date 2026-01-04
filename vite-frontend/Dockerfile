@@ -1,13 +1,17 @@
 # 多阶段构建 - 构建阶段
 FROM node:20-alpine AS builder
 
+# 安装必要的依赖以支持跨平台构建
+RUN apk add --no-cache libc6-compat
+
 WORKDIR /app
 
 # 只复制 package 文件用于缓存依赖
 COPY package*.json ./
 
-# 安装依赖并清理缓存
-RUN npm install && npm cache clean --force
+# 安装依赖
+# 使用 --force 确保在 QEMU 模拟环境下正确安装原生模块
+RUN npm install --force && npm cache clean --force
 
 # 复制源代码并构建
 COPY . .
