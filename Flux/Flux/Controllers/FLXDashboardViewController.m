@@ -8,6 +8,7 @@
 #import "FLXDashboardViewController.h"
 #import "FLXAPIClient.h"
 #import "FLXModels.h"
+#import "FLXWidgetHelper.h"
 
 @interface FLXDashboardViewController () <UITableViewDelegate,
                                           UITableViewDataSource>
@@ -153,6 +154,14 @@
             [forwards addObject:forward];
           }
           self.forwards = [forwards copy];
+        }
+
+        // 保存数据到 Widget
+        if (self.userInfo) {
+          [FLXWidgetHelper saveFluxDataWithTotalFlow:self.userInfo.flow
+                                            usedFlow:self.userInfo.inFlow +
+                                                     self.userInfo.outFlow
+                                             expTime:self.userInfo.expTime];
         }
 
         [self.tableView reloadData];

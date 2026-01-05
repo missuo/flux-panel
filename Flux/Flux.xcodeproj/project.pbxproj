@@ -6,8 +6,47 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		BF817640WIDGET01 /* FluxWidget.swift in Sources */ = {isa = PBXBuildFile; fileRef = BF817641WIDGET02 /* FluxWidget.swift */; };
+		BF817642WIDGET03 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = BF817643WIDGET04 /* Assets.xcassets */; };
+		BF817650WIDGET10 /* WidgetKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = BF817651WIDGET11 /* WidgetKit.framework */; };
+		BF817652WIDGET12 /* SwiftUI.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = BF817653WIDGET13 /* SwiftUI.framework */; };
+		BF817654WIDGET14 /* FluxWidgetExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = BF817655WIDGET15 /* FluxWidgetExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+/* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		BF817660WIDGET20 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = BF8176082F09CB7200341E9A /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = BF817656WIDGET16;
+			remoteInfo = FluxWidgetExtension;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		BF817670WIDGET30 /* Embed Foundation Extensions */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 13;
+			files = (
+				BF817654WIDGET14 /* FluxWidgetExtension.appex in Embed Foundation Extensions */,
+			);
+			name = "Embed Foundation Extensions";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
+
 /* Begin PBXFileReference section */
 		BF8176102F09CB7200341E9A /* Flux.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Flux.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		BF817641WIDGET02 /* FluxWidget.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FluxWidget.swift; sourceTree = "<group>"; };
+		BF817643WIDGET04 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		BF817644WIDGET05 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		BF817645WIDGET06 /* FluxWidget.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = FluxWidget.entitlements; sourceTree = "<group>"; };
+		BF817651WIDGET11 /* WidgetKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = WidgetKit.framework; path = System/Library/Frameworks/WidgetKit.framework; sourceTree = SDKROOT; };
+		BF817653WIDGET13 /* SwiftUI.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SwiftUI.framework; path = System/Library/Frameworks/SwiftUI.framework; sourceTree = SDKROOT; };
+		BF817655WIDGET15 /* FluxWidgetExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = FluxWidgetExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
@@ -39,6 +78,15 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		BF817680WIDGET40 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				BF817650WIDGET10 /* WidgetKit.framework in Frameworks */,
+				BF817652WIDGET12 /* SwiftUI.framework in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
@@ -46,6 +94,8 @@
 			isa = PBXGroup;
 			children = (
 				BF8176122F09CB7200341E9A /* Flux */,
+				BF817690WIDGET50 /* FluxWidget */,
+				BF817691WIDGET51 /* Frameworks */,
 				BF8176112F09CB7200341E9A /* Products */,
 			);
 			sourceTree = "<group>";
@@ -54,8 +104,29 @@
 			isa = PBXGroup;
 			children = (
 				BF8176102F09CB7200341E9A /* Flux.app */,
+				BF817655WIDGET15 /* FluxWidgetExtension.appex */,
 			);
 			name = Products;
+			sourceTree = "<group>";
+		};
+		BF817690WIDGET50 /* FluxWidget */ = {
+			isa = PBXGroup;
+			children = (
+				BF817641WIDGET02 /* FluxWidget.swift */,
+				BF817643WIDGET04 /* Assets.xcassets */,
+				BF817644WIDGET05 /* Info.plist */,
+				BF817645WIDGET06 /* FluxWidget.entitlements */,
+			);
+			path = FluxWidget;
+			sourceTree = "<group>";
+		};
+		BF817691WIDGET51 /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+				BF817651WIDGET11 /* WidgetKit.framework */,
+				BF817653WIDGET13 /* SwiftUI.framework */,
+			);
+			name = Frameworks;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -68,10 +139,12 @@
 				BF81760C2F09CB7200341E9A /* Sources */,
 				BF81760D2F09CB7200341E9A /* Frameworks */,
 				BF81760E2F09CB7200341E9A /* Resources */,
+				BF817670WIDGET30 /* Embed Foundation Extensions */,
 			);
 			buildRules = (
 			);
 			dependencies = (
+				BF817661WIDGET21 /* PBXTargetDependency */,
 			);
 			fileSystemSynchronizedGroups = (
 				BF8176122F09CB7200341E9A /* Flux */,
@@ -83,6 +156,23 @@
 			productReference = BF8176102F09CB7200341E9A /* Flux.app */;
 			productType = "com.apple.product-type.application";
 		};
+		BF817656WIDGET16 /* FluxWidgetExtension */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = BF817692WIDGET52 /* Build configuration list for PBXNativeTarget "FluxWidgetExtension" */;
+			buildPhases = (
+				BF817681WIDGET41 /* Sources */,
+				BF817680WIDGET40 /* Frameworks */,
+				BF817682WIDGET42 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = FluxWidgetExtension;
+			productName = FluxWidgetExtension;
+			productReference = BF817655WIDGET15 /* FluxWidgetExtension.appex */;
+			productType = "com.apple.product-type.app-extension";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -93,6 +183,9 @@
 				LastUpgradeCheck = 2620;
 				TargetAttributes = {
 					BF81760F2F09CB7200341E9A = {
+						CreatedOnToolsVersion = 26.2;
+					};
+					BF817656WIDGET16 = {
 						CreatedOnToolsVersion = 26.2;
 					};
 				};
@@ -112,6 +205,7 @@
 			projectRoot = "";
 			targets = (
 				BF81760F2F09CB7200341E9A /* Flux */,
+				BF817656WIDGET16 /* FluxWidgetExtension */,
 			);
 		};
 /* End PBXProject section */
@@ -121,6 +215,14 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		BF817682WIDGET42 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				BF817642WIDGET03 /* Assets.xcassets in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -134,14 +236,32 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		BF817681WIDGET41 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				BF817640WIDGET01 /* FluxWidget.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		BF817661WIDGET21 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = BF817656WIDGET16 /* FluxWidgetExtension */;
+			targetProxy = BF817660WIDGET20 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
 		BF8176292F09CB7300341E9A /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES = YES;
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = Flux/Flux.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = ZDY6H3JN3N;
@@ -155,6 +275,7 @@
 				INFOPLIST_KEY_UISupportedInterfaceOrientations = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -171,8 +292,10 @@
 		BF81762A2F09CB7300341E9A /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES = YES;
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = Flux/Flux.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = ZDY6H3JN3N;
@@ -186,6 +309,7 @@
 				INFOPLIST_KEY_UISupportedInterfaceOrientations = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -317,6 +441,64 @@
 			};
 			name = Release;
 		};
+		BF817693WIDGET53 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				ASSETCATALOG_COMPILER_WIDGET_BACKGROUND_COLOR_NAME = WidgetBackground;
+				CODE_SIGN_ENTITLEMENTS = FluxWidget/FluxWidget.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = ZDY6H3JN3N;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = FluxWidget/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = Flux;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.5.6;
+				PRODUCT_BUNDLE_IDENTIFIER = nz.owo.Flux.FluxWidget;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		BF817694WIDGET54 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				ASSETCATALOG_COMPILER_WIDGET_BACKGROUND_COLOR_NAME = WidgetBackground;
+				CODE_SIGN_ENTITLEMENTS = FluxWidget/FluxWidget.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = ZDY6H3JN3N;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = FluxWidget/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = Flux;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.5.6;
+				PRODUCT_BUNDLE_IDENTIFIER = nz.owo.Flux.FluxWidget;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -334,6 +516,15 @@
 			buildConfigurations = (
 				BF8176292F09CB7300341E9A /* Debug */,
 				BF81762A2F09CB7300341E9A /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		BF817692WIDGET52 /* Build configuration list for PBXNativeTarget "FluxWidgetExtension" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				BF817693WIDGET53 /* Debug */,
+				BF817694WIDGET54 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;

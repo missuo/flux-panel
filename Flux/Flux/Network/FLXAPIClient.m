@@ -6,6 +6,7 @@
 //
 
 #import "FLXAPIClient.h"
+#import "FLXWidgetHelper.h"
 
 @interface FLXAPIClient ()
 

@@ -9,6 +9,7 @@
 #import "FLXAPIClient.h"
 #import "FLXMainTabBarController.h"
 #import "FLXWebLoginViewController.h"
+#import "FLXWidgetHelper.h"
 
 @interface FLXLoginViewController () <UITextFieldDelegate, FLXWebLoginDelegate>
 
@@ -312,6 +313,8 @@
 
   // 设置服务器地址
   [[FLXAPIClient sharedClient] setBaseURL:server];
+  // 保存到 Widget App Groups
+  [FLXWidgetHelper saveServerURL:server];
 
   // 开始加载
   [self setLoading:YES];
@@ -412,6 +415,9 @@
                                                        forKey:@"isAdmin"];
                [[NSUserDefaults standardUserDefaults] synchronize];
 
+               // 保存到 Widget App Groups
+               [FLXWidgetHelper saveAuthToken:token];
+
                // 检查是否需要修改密码
                if (requirePasswordChange) {
                  [self showAlertWithTitle:@"提示"
@@ -493,6 +499,9 @@
   [[NSUserDefaults standardUserDefaults] setBool:(roleId == 0)
                                           forKey:@"isAdmin"];
   [[NSUserDefaults standardUserDefaults] synchronize];
+
+  // 保存到 Widget App Groups
+  [FLXWidgetHelper saveAuthToken:token];
 
   // 检查是否需要修改密码
   if (requirePasswordChange) {

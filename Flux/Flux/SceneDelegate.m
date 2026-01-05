@@ -9,6 +9,7 @@
 #import "FLXAPIClient.h"
 #import "FLXLoginViewController.h"
 #import "FLXMainTabBarController.h"
+#import "FLXWidgetHelper.h"
 
 @interface SceneDelegate ()
 
@@ -33,6 +34,10 @@
     // 已登录，恢复 API 客户端配置
     [[FLXAPIClient sharedClient] setBaseURL:serverURL];
     [[FLXAPIClient sharedClient] setAuthToken:token];
+
+    // 同步登录信息到 Widget App Groups
+    [FLXWidgetHelper saveServerURL:serverURL];
+    [FLXWidgetHelper saveAuthToken:token];
 
     // 显示主界面
     FLXMainTabBarController *tabBarController =
