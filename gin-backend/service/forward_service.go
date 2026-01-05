@@ -293,6 +293,42 @@ func (s *ForwardService) UpdateForward(updateDto *dto.ForwardUpdateDto) error {
 		return errors.New("转发不存在")
 	}
 
+	// 获取隧道信息
+	tunnel, err := s.tunnelRepo.FindByID(uint(updateDto.TunnelID))
+	if err != nil {
+		return errors.New("隧道不存在")
+	}
+
+	// 获取用户隧道信息
+	userTunnel, _ := s.userTunnelRepo.FindByUserAndTunnel(uint(forward.UserID), tunnel.ID)
+
+	var limiter *int
+	var userTunnelID uint
+	if userTunnel != nil {
+		if userTunnel.SpeedID > 0 {
+			limiter = &userTunnel.SpeedID
+		}
+		userTunnelID = userTunnel.ID
+	}
+
+	// 获取入口节点
+	inNode, err := s.nodeRepo.FindByID(tunnel.InNodeID)
+	if err != nil {
+		return errors.New("入口节点不存在")
+	}
+
+	// 获取出口节点（仅隧道转发）
+	var outNode *models.Node
+	if tunnel.Type == 2 {
+		outNode, err = s.nodeRepo.FindByID(tunnel.OutNodeID)
+		if err != nil {
+			return errors.New("出口节点不存在")
+		}
+	}
+
+	serviceName := BuildServiceName(forward.ID, forward.UserID, userTunnelID)
+
+	// 更新转发信息
 	forward.Name = updateDto.Name
 	forward.TunnelID = updateDto.TunnelID
 	forward.RemoteAddr = updateDto.RemoteAddr
@@ -302,20 +338,101 @@ func (s *ForwardService) UpdateForward(updateDto *dto.ForwardUpdateDto) error {
 		forward.InPort = *updateDto.InPort
 	}
 
+	// 更新 Gost 服务配置
+	if tunnel.Type == 2 {
+		// 隧道转发：更新 Chain 和远程服务
+		remoteAddr := fmt.Sprintf("%s:%d", tunnel.OutIP, forward.OutPort)
+		if strings.Contains(tunnel.OutIP, ":") {
+			remoteAddr = fmt.Sprintf("[%s]:%d", tunnel.OutIP, forward.OutPort)
+		}
+
+		chainResp := UpdateChains(inNode.ID, serviceName, remoteAddr, tunnel.Protocol, tunnel.InterfaceName)
+		if !chainResp.Success {
+			return errors.New(chainResp.Message)
+		}
+
+		remoteResp := UpdateRemoteService(outNode.ID, serviceName, forward.OutPort, forward.RemoteAddr, tunnel.Protocol, forward.Strategy, forward.InterfaceName)
+		if !remoteResp.Success {
+			return errors.New(remoteResp.Message)
+		}
+	}
+
+	interfaceName := ""
+	if tunnel.Type != 2 {
+		interfaceName = forward.InterfaceName
+	}
+
+	// 更新入口服务
+	resp := UpdateService(inNode.ID, serviceName, forward.InPort, limiter, forward.RemoteAddr, tunnel.Type, tunnel, forward.Strategy, interfaceName)
+	if !resp.Success {
+		return errors.New(resp.Message)
+	}
+
 	return s.repo.Update(forward)
 }
 
 // DeleteForward 删除转发
 func (s *ForwardService) DeleteForward(id uint) error {
-	_, err := s.repo.FindByID(id)
+	forward, err := s.repo.FindByID(id)
 	if err != nil {
 		return errors.New("转发不存在")
 	}
+
+	// 获取隧道信息
+	tunnel, err := s.tunnelRepo.FindByID(uint(forward.TunnelID))
+	if err != nil {
+		// 隧道不存在了，只删除数据库记录
+		return s.repo.Delete(id)
+	}
+
+	// 获取用户隧道信息
+	userTunnel, _ := s.userTunnelRepo.FindByUserAndTunnel(uint(forward.UserID), tunnel.ID)
+	var userTunnelID uint
+	if userTunnel != nil {
+		userTunnelID = userTunnel.ID
+	}
+
+	serviceName := BuildServiceName(forward.ID, forward.UserID, userTunnelID)
+
+	// 删除 Gost 服务
+	DeleteService(tunnel.InNodeID, serviceName)
+	DeleteChains(tunnel.InNodeID, serviceName)
+
+	if tunnel.Type == 2 {
+		DeleteRemoteService(tunnel.OutNodeID, serviceName)
+	}
+
 	return s.repo.Delete(id)
 }
 
 // ForceDeleteForward 强制删除转发
 func (s *ForwardService) ForceDeleteForward(id uint) error {
+	forward, err := s.repo.FindByID(id)
+	if err != nil {
+		// 转发不存在，直接返回成功
+		return nil
+	}
+
+	// 尝试删除 agent 上的服务（忽略错误）
+	tunnel, err := s.tunnelRepo.FindByID(uint(forward.TunnelID))
+	if err == nil {
+		userTunnel, _ := s.userTunnelRepo.FindByUserAndTunnel(uint(forward.UserID), tunnel.ID)
+		var userTunnelID uint
+		if userTunnel != nil {
+			userTunnelID = userTunnel.ID
+		}
+
+		serviceName := BuildServiceName(forward.ID, forward.UserID, userTunnelID)
+
+		// 删除 Gost 服务（忽略失败）
+		DeleteService(tunnel.InNodeID, serviceName)
+		DeleteChains(tunnel.InNodeID, serviceName)
+
+		if tunnel.Type == 2 {
+			DeleteRemoteService(tunnel.OutNodeID, serviceName)
+		}
+	}
+
 	return s.repo.Delete(id)
 }
 
