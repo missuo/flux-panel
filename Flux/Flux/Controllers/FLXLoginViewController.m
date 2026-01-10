@@ -322,17 +322,18 @@
   // 先检查验证码
   [[FLXAPIClient sharedClient] checkCaptchaWithCompletion:^(
                                    NSDictionary *response, NSError *error) {
+    // 降级处理：如果网络错误，假设验证码未启用，允许继续登录
     if (error) {
-      [self setLoading:NO];
-      [self showAlertWithTitle:@"错误" message:@"网络错误，请检查服务器地址"];
+      NSLog(@"验证码检查失败，降级为无验证码模式: %@", error.localizedDescription);
+      [self performLoginWithUsername:username password:password];
       return;
     }
 
     NSInteger code = [response[@"code"] integerValue];
+    // 降级处理：如果验证码检查失败，假设验证码未启用，允许继续登录
     if (code != 0) {
-      [self setLoading:NO];
-      [self showAlertWithTitle:@"错误"
-                       message:response[@"msg"] ?: @"检查验证码状态失败"];
+      NSLog(@"验证码检查失败，降级为无验证码模式: %@", response[@"msg"]);
+      [self performLoginWithUsername:username password:password];
       return;
     }
 

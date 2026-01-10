@@ -152,16 +152,17 @@ export default function IndexPage() {
     try {
       // 先检查是否需要验证码
       const checkResponse = await checkCaptcha();
-      
+
+      // 降级处理：如果验证码检查失败，假设未启用验证码，允许继续登录
       if (checkResponse.code !== 0) {
-        toast.error("检查验证码状态失败，请重试" + checkResponse.msg);
-        setLoading(false);
+        console.warn("验证码检查失败，降级为无验证码模式:", checkResponse.msg);
+        await performLogin();
         return;
       }
 
       // 返回数据结构：{ enabled: 0/1, type: "TURNSTILE", turnstile_site_key: string }
       const captchaData = checkResponse.data;
-      
+
       // 检查是否启用验证码
       if (captchaData === 0 || captchaData?.enabled === 0) {
         // 不需要验证码，直接登录
@@ -179,8 +180,9 @@ export default function IndexPage() {
       }
     } catch (error) {
       console.error('检查验证码状态错误:', error);
-      toast.error("网络错误，请稍后重试" + error);
-      setLoading(false);
+      // 降级处理：网络异常时假设未启用验证码，允许继续登录
+      console.warn("网络异常，降级为无验证码模式");
+      await performLogin();
     }
   };
 
